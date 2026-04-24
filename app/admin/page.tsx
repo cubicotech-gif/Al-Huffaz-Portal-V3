@@ -106,6 +106,28 @@ export default async function AdminHome() {
           body="Add a new student record."
           cta="Create"
         />
+        <NavCard
+          href="/admin/students/import"
+          title="Bulk import"
+          body="Import a CSV to add many students at once."
+          cta="Import"
+        />
+        {profile.role === 'admin' ? (
+          <NavCard
+            href="/admin/activity"
+            title="Activity log"
+            body="Audit every write action across the portal."
+            cta="Open"
+          />
+        ) : null}
+        {profile.role === 'admin' ? (
+          <NavCard
+            href="/admin/settings"
+            title="Settings"
+            body="School info, currency, academic year, and exports."
+            cta="Open"
+          />
+        ) : null}
       </div>
     </DashboardShell>
   );

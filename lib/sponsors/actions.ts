@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email/resend';
+import { logActivity } from '@/lib/activity';
 
 async function notify(userId: string, title: string, message: string, relatedType?: string, relatedId?: string) {
   const supabase = await createClient();
@@ -64,6 +65,8 @@ export async function approveSponsorAction(profileId: string, _formData: FormDat
     profileId,
   );
 
+  await logActivity({ action: 'sponsor.approved', objectType: 'sponsor', objectId: profileId });
+
   revalidatePath('/admin/sponsors/pending');
   revalidatePath('/admin');
 }
@@ -77,6 +80,8 @@ export async function rejectSponsorAction(profileId: string, _formData: FormData
     .eq('id', profileId)
     .eq('role', 'pending_sponsor');
   if (error) throw new Error(error.message);
+
+  await logActivity({ action: 'sponsor.rejected', objectType: 'sponsor', objectId: profileId });
 
   revalidatePath('/admin/sponsors/pending');
 }
@@ -102,6 +107,8 @@ export async function pauseSponsorAction(id: string, _formData: FormData) {
     'Your account has been paused',
     'An administrator has paused your sponsor account. Contact support if you believe this is in error.',
   );
+
+  await logActivity({ action: 'sponsor.paused', objectType: 'sponsor', objectId: id });
 
   revalidatePath('/admin/sponsors');
   revalidatePath(`/admin/sponsors/${id}`);
@@ -138,6 +145,8 @@ export async function reactivateSponsorAction(id: string, _formData: FormData) {
     'Welcome back. You can now resume sponsoring students.',
   );
 
+  await logActivity({ action: 'sponsor.reactivated', objectType: 'sponsor', objectId: id });
+
   revalidatePath('/admin/sponsors');
   revalidatePath(`/admin/sponsors/${id}`);
 }
@@ -171,6 +180,8 @@ export async function deleteSponsorAction(id: string, _formData: FormData) {
     .update({ is_active: false })
     .eq('id', sponsor.profile_id);
 
+  await logActivity({ action: 'sponsor.deleted', objectType: 'sponsor', objectId: id });
+
   revalidatePath('/admin/sponsors');
   revalidatePath(`/admin/sponsors/${id}`);
 }
@@ -197,6 +208,8 @@ export async function reengageSponsorAction(id: string, _formData: FormData) {
       text: `Hi ${sponsor.display_name},\n\nIt's been a while since we heard from you. If you'd like to resume sponsoring a student, sign in at your dashboard whenever you're ready.\n\nThank you for supporting Al-Huffaz.`,
     });
   }
+
+  await logActivity({ action: 'sponsor.reengaged', objectType: 'sponsor', objectId: id });
 
   revalidatePath(`/admin/sponsors/${id}`);
 }

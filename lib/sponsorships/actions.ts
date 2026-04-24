@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { logActivity } from '@/lib/activity';
 
 export type RequestSponsorshipState = { error?: string; requestedAt?: number };
 
@@ -86,6 +87,13 @@ export async function requestSponsorshipAction(
   });
   if (error) return { error: error.message };
 
+  await logActivity({
+    action: 'sponsorship.requested',
+    objectType: 'sponsorship',
+    objectId: studentId,
+    details: { student_id: studentId, sponsor_id: sponsor.id },
+  });
+
   revalidatePath(`/students/${studentId}`);
   revalidatePath('/admin/sponsorships');
   revalidatePath('/sponsor');
@@ -121,6 +129,8 @@ export async function approveSponsorshipAction(id: string, _formData: FormData) 
     'Your sponsorship request has been approved. Submit your first payment to activate it.',
     id,
   );
+
+  await logActivity({ action: 'sponsorship.approved', objectType: 'sponsorship', objectId: id });
 
   revalidatePath('/admin/sponsorships');
   revalidatePath('/sponsor');
@@ -162,6 +172,13 @@ export async function rejectSponsorshipAction(id: string, formData: FormData) {
     reason ?? 'Your sponsorship request was declined. You can request a different student.',
     id,
   );
+
+  await logActivity({
+    action: 'sponsorship.rejected',
+    objectType: 'sponsorship',
+    objectId: id,
+    details: { reason },
+  });
 
   revalidatePath('/admin/sponsorships');
   revalidatePath('/sponsor');
