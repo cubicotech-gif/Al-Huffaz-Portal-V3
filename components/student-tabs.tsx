@@ -2,12 +2,19 @@ import Link from 'next/link';
 
 const TABS = [
   { slug: '', label: 'Profile' },
+  { slug: 'edit', label: 'Edit' },
   { slug: 'fees', label: 'Fees' },
   { slug: 'academics', label: 'Academics' },
   { slug: 'behavior', label: 'Behaviour' },
 ] as const;
 
-export function StudentTabs({ id, active }: { id: string; active: '' | 'fees' | 'academics' | 'behavior' }) {
+export function StudentTabs({
+  id,
+  active,
+}: {
+  id: string;
+  active: '' | 'edit' | 'fees' | 'academics' | 'behavior';
+}) {
   return (
     <nav className="mb-6 flex flex-wrap gap-2 border-b border-slate-200">
       {TABS.map((t) => {

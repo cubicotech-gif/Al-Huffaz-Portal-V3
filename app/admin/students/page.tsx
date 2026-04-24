@@ -151,7 +151,7 @@ export default async function StudentsListPage({
                       href={`/admin/students/${s.id}`}
                       className="text-sm font-semibold text-brand-600 hover:underline"
                     >
-                      Edit
+                      Open
                     </Link>
                   </td>
                 </tr>

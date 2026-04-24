@@ -16,3 +16,26 @@ body {
   background: rgb(var(--background));
   color: rgb(var(--foreground));
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border-color: #e2e8f0 !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
