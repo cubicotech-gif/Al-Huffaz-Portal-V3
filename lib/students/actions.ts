@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { SCHOOL_ID, studentFormSchema } from '@/lib/students/schema';
+import { logActivity } from '@/lib/activity';
 import type { StudentFormState } from '@/components/student-form';
 
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
@@ -66,6 +67,13 @@ export async function createStudentAction(
     }
   }
 
+  await logActivity({
+    action: 'student.created',
+    objectType: 'student',
+    objectId: inserted.id,
+    details: { full_name: parsed.data.full_name },
+  });
+
   revalidatePath('/admin/students');
   redirect(`/admin/students/${inserted.id}`);
 }
@@ -103,6 +111,8 @@ export async function updateStudentAction(
 
   if (error) return { error: error.message };
 
+  await logActivity({ action: 'student.updated', objectType: 'student', objectId: id });
+
   revalidatePath('/admin/students');
   revalidatePath(`/admin/students/${id}`);
   return { savedAt: Date.now() };
@@ -115,6 +125,7 @@ export async function archiveStudentAction(id: string, _formData: FormData) {
     .update({ archived_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw new Error(error.message);
+  await logActivity({ action: 'student.archived', objectType: 'student', objectId: id });
   revalidatePath('/admin/students');
   redirect('/admin/students');
 }
@@ -123,6 +134,7 @@ export async function restoreStudentAction(id: string, _formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.from('students').update({ archived_at: null }).eq('id', id);
   if (error) throw new Error(error.message);
+  await logActivity({ action: 'student.restored', objectType: 'student', objectId: id });
   revalidatePath('/admin/students');
   revalidatePath(`/admin/students/${id}`);
 }

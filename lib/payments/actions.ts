@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email/resend';
+import { logActivity } from '@/lib/activity';
 import {
   ALLOWED_PROOF_TYPES,
   MAX_PROOF_BYTES,
@@ -122,6 +123,13 @@ export async function submitPaymentAction(
     return { error: insertError?.message ?? 'Failed to record payment.' };
   }
 
+  await logActivity({
+    action: 'payment.submitted',
+    objectType: 'payment',
+    objectId: inserted.id,
+    details: { amount_minor: amountMinor, sponsorship_id: sponsorship.id },
+  });
+
   revalidatePath('/sponsor/payments');
   revalidatePath('/sponsor/students');
   revalidatePath('/admin/payments');
@@ -180,6 +188,8 @@ export async function verifyPaymentAction(id: string, _formData: FormData) {
     text: `Your payment for ${student.full_name} has been verified. Thank you for your support.`,
   });
 
+  await logActivity({ action: 'payment.verified', objectType: 'payment', objectId: id });
+
   revalidatePath('/admin/payments');
   revalidatePath('/sponsor/payments');
   revalidatePath('/sponsor/students');
@@ -218,6 +228,13 @@ export async function rejectPaymentAction(id: string, formData: FormData) {
     text:
       reason ??
       `Your payment for ${student.full_name} was rejected. Please review and resubmit from your portal.`,
+  });
+
+  await logActivity({
+    action: 'payment.rejected',
+    objectType: 'payment',
+    objectId: id,
+    details: { reason },
   });
 
   revalidatePath('/admin/payments');

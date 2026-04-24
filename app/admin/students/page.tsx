@@ -46,12 +46,26 @@ export default async function StudentsListPage({
             {total} {filters.archived === 'true' ? 'archived' : 'active'} student{total === 1 ? '' : 's'}
           </p>
         </div>
-        <Link
-          href="/admin/students/new"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-        >
-          + New student
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/students/import"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:text-brand-700"
+          >
+            Import CSV
+          </Link>
+          <a
+            href="/api/admin/exports/students"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:text-brand-700"
+          >
+            Export CSV
+          </a>
+          <Link
+            href="/admin/students/new"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            + New student
+          </Link>
+        </div>
       </div>
 
       <form method="get" className="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-5">

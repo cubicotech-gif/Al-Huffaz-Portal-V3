@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { logActivity } from '@/lib/activity';
 
 export type StaffFormState = { error?: string; info?: string };
 
@@ -62,6 +63,13 @@ export async function grantStaffAction(
     .eq('id', userId);
   if (error) return { error: error.message };
 
+  await logActivity({
+    action: 'staff.granted',
+    objectType: 'profile',
+    objectId: userId,
+    details: { email: emailRaw },
+  });
+
   revalidatePath('/admin/staff');
   return { info: `${targetProfile.full_name} is now staff.` };
 }
@@ -83,6 +91,8 @@ export async function revokeStaffAction(profileId: string, _formData: FormData) 
     .update({ is_active: false })
     .eq('id', profileId);
   if (error) throw new Error(error.message);
+
+  await logActivity({ action: 'staff.revoked', objectType: 'profile', objectId: profileId });
 
   revalidatePath('/admin/staff');
 }
