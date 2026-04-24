@@ -1,6 +1,13 @@
-import Link from 'next/link';
-import { SignOutButton } from '@/components/signout-button';
 import { NotificationBell } from '@/components/notification-bell';
+import { SignOutButton } from '@/components/signout-button';
+import { Sidebar } from '@/components/sidebar';
+
+function navRoleFromDisplay(role: string): 'admin' | 'staff' | 'sponsor' {
+  const v = role.toLowerCase();
+  if (v === 'admin') return 'admin';
+  if (v === 'staff') return 'staff';
+  return 'sponsor';
+}
 
 export function DashboardShell({
   role,
@@ -13,38 +20,30 @@ export function DashboardShell({
   children: React.ReactNode;
   notificationsHref?: string;
 }) {
+  const navRole = navRoleFromDisplay(role);
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-              AH
-            </div>
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-brand-600">
+    <div className="min-h-screen bg-slate-50">
+      <Sidebar role={navRole} />
+
+      <div className="lg:pl-64">
+        <header className="no-print sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+          <div className="flex items-center justify-end gap-3 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="hidden flex-col items-end text-right sm:flex">
+              <span className="text-sm font-semibold text-slate-900">{name}</span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-brand-600">
                 {role}
-              </p>
-              <p className="text-sm font-semibold text-slate-900">Al-Huffaz Education Portal</p>
+              </span>
             </div>
-          </Link>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-slate-600 sm:inline">{name}</span>
             <NotificationBell href={notificationsHref} />
             <SignOutButton />
           </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-10">{children}</main>
-    </div>
-  );
-}
+        </header>
 
-export function PlaceholderCard({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-      <h2 className="mb-2 text-lg font-semibold text-slate-900">{title}</h2>
-      <p className="text-sm text-slate-600">{body}</p>
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

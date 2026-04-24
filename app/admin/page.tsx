@@ -2,8 +2,22 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { createClient } from '@/lib/supabase/server';
+import {
+  IconActivity,
+  IconArrowRight,
+  IconGraduationCap,
+  IconHeart,
+  IconInbox,
+  IconSettings,
+  IconUpload,
+  IconUserPlus,
+  IconUsers,
+  IconWallet,
+} from '@/components/icons';
 
 export const runtime = 'edge';
+
+type IconComponent = React.ComponentType<{ className?: string; strokeWidth?: number }>;
 
 export default async function AdminHome() {
   const { profile } = await requireRole(['admin', 'staff']);
@@ -40,104 +54,149 @@ export default async function AdminHome() {
       .eq('status', 'submitted'),
   ]);
 
-  return (
-    <DashboardShell
-      role={profile.role === 'admin' ? 'Admin' : 'Staff'}
-      name={profile.full_name}
-      notificationsHref="/admin/notifications"
-    >
-      <h1 className="mb-2 text-2xl font-bold text-slate-900">Admin dashboard</h1>
-      <p className="mb-8 text-sm text-slate-600">Welcome back, {profile.full_name}.</p>
+  const displayRole = profile.role === 'admin' ? 'Admin' : 'Staff';
+  const firstName = profile.full_name.split(' ')[0] ?? profile.full_name;
 
-      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Stat label="Active students" value={activeStudents ?? 0} />
-        <Stat label="Sponsored" value={sponsoredStudents ?? 0} />
-        <Stat label="Pending sponsors" value={pendingSponsors ?? 0} />
-        <Stat label="Open requests" value={pendingRequests ?? 0} />
-        <Stat label="Payments to verify" value={pendingPayments ?? 0} />
+  return (
+    <DashboardShell role={displayRole} name={profile.full_name} notificationsHref="/admin/notifications">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Welcome, {firstName}</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Here's what's waiting for your attention today.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard
+          label="Active students"
+          value={activeStudents ?? 0}
+          icon={IconGraduationCap}
+          tone="slate"
+        />
+        <StatCard
+          label="Sponsored"
+          value={sponsoredStudents ?? 0}
+          icon={IconHeart}
+          tone="brand"
+        />
+        <StatCard
+          label="Pending sponsors"
+          value={pendingSponsors ?? 0}
+          icon={IconUserPlus}
+          tone={pendingSponsors ? 'amber' : 'slate'}
+        />
+        <StatCard
+          label="Open requests"
+          value={pendingRequests ?? 0}
+          icon={IconInbox}
+          tone={pendingRequests ? 'amber' : 'slate'}
+        />
+        <StatCard
+          label="Payments to verify"
+          value={pendingPayments ?? 0}
+          icon={IconWallet}
+          tone={pendingPayments ? 'amber' : 'slate'}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <NavCard
           href="/admin/students"
           title="Students"
           body="Browse, create, and manage the student roll."
-          cta="Open roll"
+          icon={IconGraduationCap}
         />
         <NavCard
           href="/admin/sponsorships?status=requested"
           title="Sponsorship queue"
-          body={`${pendingRequests ?? 0} request${pendingRequests === 1 ? '' : 's'} waiting for review.`}
-          cta="Review"
+          body={`${pendingRequests ?? 0} request${pendingRequests === 1 ? '' : 's'} awaiting review.`}
+          icon={IconInbox}
+          highlight={Boolean(pendingRequests)}
         />
         <NavCard
           href="/admin/payments?status=submitted"
           title="Payments queue"
-          body={`${pendingPayments ?? 0} payment${pendingPayments === 1 ? '' : 's'} awaiting verification.`}
-          cta="Verify"
+          body={`${pendingPayments ?? 0} payment${pendingPayments === 1 ? '' : 's'} to verify.`}
+          icon={IconWallet}
+          highlight={Boolean(pendingPayments)}
         />
         {profile.role === 'admin' ? (
-          <NavCard
-            href="/admin/sponsors/pending"
-            title="Sponsor approvals"
-            body={`${pendingSponsors ?? 0} pending sponsor account${pendingSponsors === 1 ? '' : 's'}.`}
-            cta="Review"
-          />
+          <>
+            <NavCard
+              href="/admin/sponsors/pending"
+              title="Sponsor approvals"
+              body={`${pendingSponsors ?? 0} pending account${pendingSponsors === 1 ? '' : 's'}.`}
+              icon={IconUserPlus}
+              highlight={Boolean(pendingSponsors)}
+            />
+            <NavCard
+              href="/admin/sponsors"
+              title="Sponsors"
+              body="Pause, reactivate, delete, or re-engage a sponsor."
+              icon={IconUsers}
+            />
+            <NavCard
+              href="/admin/staff"
+              title="Staff"
+              body="Grant or revoke staff access by email."
+              icon={IconUsers}
+            />
+          </>
         ) : null}
-        {profile.role === 'admin' ? (
-          <NavCard
-            href="/admin/sponsors"
-            title="Sponsors"
-            body="Manage sponsor accounts — pause, reactivate, delete, re-engage."
-            cta="Open"
-          />
-        ) : null}
-        {profile.role === 'admin' ? (
-          <NavCard
-            href="/admin/staff"
-            title="Staff"
-            body="Grant or revoke staff access by email."
-            cta="Manage"
-          />
-        ) : null}
-        <NavCard
-          href="/admin/students/new"
-          title="New student"
-          body="Add a new student record."
-          cta="Create"
-        />
         <NavCard
           href="/admin/students/import"
           title="Bulk import"
-          body="Import a CSV to add many students at once."
-          cta="Import"
+          body="Add many students at once from a CSV file."
+          icon={IconUpload}
         />
         {profile.role === 'admin' ? (
-          <NavCard
-            href="/admin/activity"
-            title="Activity log"
-            body="Audit every write action across the portal."
-            cta="Open"
-          />
-        ) : null}
-        {profile.role === 'admin' ? (
-          <NavCard
-            href="/admin/settings"
-            title="Settings"
-            body="School info, currency, academic year, and exports."
-            cta="Open"
-          />
+          <>
+            <NavCard
+              href="/admin/activity"
+              title="Activity log"
+              body="Audit every write action in the portal."
+              icon={IconActivity}
+            />
+            <NavCard
+              href="/admin/settings"
+              title="Settings"
+              body="School info, currency, academic year, exports."
+              icon={IconSettings}
+            />
+          </>
         ) : null}
       </div>
     </DashboardShell>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+const TONES = {
+  slate: { bg: 'bg-slate-100', icon: 'text-slate-600' },
+  brand: { bg: 'bg-brand-100', icon: 'text-brand-700' },
+  amber: { bg: 'bg-amber-100', icon: 'text-amber-700' },
+} as const;
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: IconComponent;
+  tone: keyof typeof TONES;
+}) {
+  const style = TONES[tone];
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-2">
+        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${style.bg}`}>
+          <Icon className={`h-4 w-4 ${style.icon}`} />
+        </span>
+        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
+      </div>
+      <p className="mt-3 text-3xl font-bold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -146,21 +205,32 @@ function NavCard({
   href,
   title,
   body,
-  cta,
+  icon: Icon,
+  highlight = false,
 }: {
   href: string;
   title: string;
   body: string;
-  cta: string;
+  icon: IconComponent;
+  highlight?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-brand-300 hover:shadow-md"
+      className={`group flex flex-col rounded-2xl border p-5 shadow-sm transition hover:shadow-md ${
+        highlight
+          ? 'border-brand-200 bg-brand-50/40 hover:border-brand-300'
+          : 'border-slate-200 bg-white hover:border-brand-300'
+      }`}
     >
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700 transition group-hover:bg-brand-100">
+        <Icon className="h-5 w-5" />
+      </div>
+      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
       <p className="mt-1 flex-1 text-sm text-slate-600">{body}</p>
-      <span className="mt-4 text-sm font-semibold text-brand-600">{cta} →</span>
+      <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600">
+        Open <IconArrowRight className="h-4 w-4" />
+      </span>
     </Link>
   );
 }
