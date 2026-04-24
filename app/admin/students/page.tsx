@@ -34,7 +34,11 @@ export default async function StudentsListPage({
   const { rows, total, page, totalPages } = await listStudents(filters);
 
   return (
-    <DashboardShell role={profile.role === 'admin' ? 'Admin' : 'Staff'} name={profile.full_name}>
+    <DashboardShell
+      role={profile.role === 'admin' ? 'Admin' : 'Staff'}
+      name={profile.full_name}
+      notificationsHref="/admin/notifications"
+    >
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Students</h1>

@@ -10,7 +10,11 @@ export default async function NewStudentPage() {
   const { profile } = await requireRole(['admin', 'staff']);
 
   return (
-    <DashboardShell role={profile.role === 'admin' ? 'Admin' : 'Staff'} name={profile.full_name}>
+    <DashboardShell
+      role={profile.role === 'admin' ? 'Admin' : 'Staff'}
+      name={profile.full_name}
+      notificationsHref="/admin/notifications"
+    >
       <div className="mb-6">
         <Link
           href="/admin/students"

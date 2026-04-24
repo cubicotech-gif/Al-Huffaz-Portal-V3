@@ -29,7 +29,11 @@ export default async function EditStudentPage({
   const restoreWithId = restoreStudentAction.bind(null, id);
 
   return (
-    <DashboardShell role={profile.role === 'admin' ? 'Admin' : 'Staff'} name={profile.full_name}>
+    <DashboardShell
+      role={profile.role === 'admin' ? 'Admin' : 'Staff'}
+      name={profile.full_name}
+      notificationsHref="/admin/notifications"
+    >
       <div className="mb-6 flex items-start justify-between">
         <div>
           <Link

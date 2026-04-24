@@ -9,34 +9,46 @@ export default async function AdminHome() {
   const { profile } = await requireRole(['admin', 'staff']);
   const supabase = await createClient();
 
-  const [{ count: activeCount }, { count: archivedCount }, { count: sponsoredCount }] =
-    await Promise.all([
-      supabase
-        .from('students')
-        .select('id', { count: 'exact', head: true })
-        .is('archived_at', null),
-      supabase
-        .from('students')
-        .select('id', { count: 'exact', head: true })
-        .not('archived_at', 'is', null),
-      supabase
-        .from('students')
-        .select('id', { count: 'exact', head: true })
-        .eq('is_sponsored', true)
-        .is('archived_at', null),
-    ]);
+  const [
+    { count: activeStudents },
+    { count: sponsoredStudents },
+    { count: pendingSponsors },
+    { count: pendingRequests },
+  ] = await Promise.all([
+    supabase
+      .from('students')
+      .select('id', { count: 'exact', head: true })
+      .is('archived_at', null),
+    supabase
+      .from('students')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_sponsored', true)
+      .is('archived_at', null),
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'pending_sponsor')
+      .eq('is_active', true),
+    supabase
+      .from('sponsorships')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'requested'),
+  ]);
 
   return (
-    <DashboardShell role={profile.role === 'admin' ? 'Admin' : 'Staff'} name={profile.full_name}>
+    <DashboardShell
+      role={profile.role === 'admin' ? 'Admin' : 'Staff'}
+      name={profile.full_name}
+      notificationsHref="/admin/notifications"
+    >
       <h1 className="mb-2 text-2xl font-bold text-slate-900">Admin dashboard</h1>
-      <p className="mb-8 text-sm text-slate-600">
-        Welcome back, {profile.full_name}.
-      </p>
+      <p className="mb-8 text-sm text-slate-600">Welcome back, {profile.full_name}.</p>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Stat label="Active students" value={activeCount ?? 0} />
-        <Stat label="Sponsored" value={sponsoredCount ?? 0} />
-        <Stat label="Archived" value={archivedCount ?? 0} />
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Active students" value={activeStudents ?? 0} />
+        <Stat label="Sponsored" value={sponsoredStudents ?? 0} />
+        <Stat label="Pending sponsors" value={pendingSponsors ?? 0} />
+        <Stat label="Open requests" value={pendingRequests ?? 0} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -46,6 +58,20 @@ export default async function AdminHome() {
           body="Browse, create, and manage the student roll."
           cta="Open roll"
         />
+        <NavCard
+          href="/admin/sponsorships?status=requested"
+          title="Sponsorship queue"
+          body={`${pendingRequests ?? 0} request${pendingRequests === 1 ? '' : 's'} waiting for review.`}
+          cta="Review"
+        />
+        {profile.role === 'admin' ? (
+          <NavCard
+            href="/admin/sponsors/pending"
+            title="Sponsor approvals"
+            body={`${pendingSponsors ?? 0} pending sponsor account${pendingSponsors === 1 ? '' : 's'}.`}
+            cta="Review"
+          />
+        ) : null}
         <NavCard
           href="/admin/students/new"
           title="New student"
