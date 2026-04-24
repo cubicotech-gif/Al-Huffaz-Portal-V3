@@ -18,7 +18,6 @@ const TEMPLATE_COLUMNS = [
   'current_address',
   'father_name',
   'father_cnic',
-  'father_phone',
   'father_email',
   'guardian_name',
   'guardian_cnic',

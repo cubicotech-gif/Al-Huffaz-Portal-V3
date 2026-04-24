@@ -150,7 +150,6 @@ export default async function StudentProfilePage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Father's name" value={student.father_name} />
             <Field label="Father CNIC" value={student.father_cnic} />
-            <Field label="Father phone" value={student.father_phone} />
             <Field label="Father email" value={student.father_email} />
             <Field label="Guardian's name" value={student.guardian_name} />
             <Field label="Relationship" value={student.relationship} />

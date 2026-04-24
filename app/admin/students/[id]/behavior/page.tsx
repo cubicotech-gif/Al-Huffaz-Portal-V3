@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { deleteBehaviorAction, saveBehaviorAction } from '@/lib/students/related/actions';
 import { getBehavior, listBehavior } from '@/lib/students/related/queries';
 import { goalsToString } from '@/lib/students/related/schema';
+import { academicYearOptions } from '@/lib/students/schema';
 import { BehaviorForm, type BehaviorDefaults } from './behavior-form';
 
 export const runtime = 'edge';
@@ -42,10 +43,12 @@ export default async function StudentBehaviorPage({
     .single();
   if (!student) notFound();
 
-  const [rows, editing] = await Promise.all([
+  const [rows, editing, { data: school }] = await Promise.all([
     listBehavior(id),
     edit ? getBehavior(edit) : null,
+    supabase.from('schools').select('academic_year').limit(1).single(),
   ]);
+  const yearOptions = academicYearOptions(school?.academic_year ?? null);
   const editingRow = editing && editing.student_id === id ? editing : null;
 
   const defaults: BehaviorDefaults = editingRow
@@ -92,6 +95,7 @@ export default async function StudentBehaviorPage({
           action={action}
           defaults={defaults}
           submitLabel={editingRow ? 'Save changes' : 'Add record'}
+          yearOptions={yearOptions}
         />
         {editingRow ? (
           <div className="mt-3">

@@ -2,7 +2,8 @@
 
 import { useActionState } from 'react';
 import { FormError } from '@/components/auth-card';
-import { Field, Select, Textarea, TextInput } from '@/components/form-fields';
+import { Field, Select, Textarea } from '@/components/form-fields';
+import { ACADEMIC_TERMS } from '@/lib/students/schema';
 import type { RelatedFormState } from '@/lib/students/related/actions';
 import { BEHAVIOR_RATINGS } from '@/lib/students/related/schema';
 
@@ -44,10 +45,12 @@ export function BehaviorForm({
   action,
   defaults,
   submitLabel,
+  yearOptions,
 }: {
   action: Action;
   defaults: BehaviorDefaults;
   submitLabel: string;
+  yearOptions: string[];
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const err = (name: string) => state.fieldErrors?.[name];
@@ -62,12 +65,26 @@ export function BehaviorForm({
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Academic year" hint="e.g. 2025-26">
-          <TextInput name="academic_year" defaultValue={defaults.academic_year} required />
+        <Field label="Academic year">
+          <Select name="academic_year" defaultValue={defaults.academic_year} required>
+            <option value="">Select Year</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
           {err('academic_year') ? <FieldError message={err('academic_year')!} /> : null}
         </Field>
         <Field label="Term">
-          <TextInput name="academic_term" defaultValue={defaults.academic_term} required />
+          <Select name="academic_term" defaultValue={defaults.academic_term} required>
+            <option value="">Select Term</option>
+            {ACADEMIC_TERMS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </Select>
           {err('academic_term') ? <FieldError message={err('academic_term')!} /> : null}
         </Field>
       </div>

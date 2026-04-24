@@ -6,6 +6,7 @@ import { StudentTabs } from '@/components/student-tabs';
 import { formatMinorUnits } from '@/lib/money';
 import { deleteFeeAction, saveFeeAction } from '@/lib/students/related/actions';
 import { getFee, listFees } from '@/lib/students/related/queries';
+import { academicYearOptions } from '@/lib/students/schema';
 import { createClient } from '@/lib/supabase/server';
 import { FeesForm, type FeeDefaults } from './fees-form';
 
@@ -46,7 +47,12 @@ export default async function StudentFeesPage({
     .single();
   if (!student) notFound();
 
-  const [rows, editing] = await Promise.all([listFees(id), edit ? getFee(edit) : null]);
+  const [rows, editing, { data: school }] = await Promise.all([
+    listFees(id),
+    edit ? getFee(edit) : null,
+    supabase.from('schools').select('academic_year').limit(1).single(),
+  ]);
+  const yearOptions = academicYearOptions(school?.academic_year ?? null);
 
   const editingRow = editing && editing.student_id === id ? editing : null;
   const defaults: FeeDefaults = editingRow
@@ -85,7 +91,12 @@ export default async function StudentFeesPage({
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-600">
           {editingRow ? `Edit ${editingRow.academic_year}${editingRow.academic_term ? ' · ' + editingRow.academic_term : ''}` : 'Add fee record'}
         </h2>
-        <FeesForm action={action} defaults={defaults} submitLabel={editingRow ? 'Save changes' : 'Add record'} />
+        <FeesForm
+          action={action}
+          defaults={defaults}
+          submitLabel={editingRow ? 'Save changes' : 'Add record'}
+          yearOptions={yearOptions}
+        />
         {editingRow ? (
           <div className="mt-3">
             <Link

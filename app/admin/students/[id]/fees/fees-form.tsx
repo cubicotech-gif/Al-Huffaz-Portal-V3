@@ -2,7 +2,8 @@
 
 import { useActionState } from 'react';
 import { FormError } from '@/components/auth-card';
-import { Field, TextInput } from '@/components/form-fields';
+import { Field, Select, TextInput } from '@/components/form-fields';
+import { ACADEMIC_TERMS } from '@/lib/students/schema';
 import type { RelatedFormState } from '@/lib/students/related/actions';
 
 const INITIAL: RelatedFormState = {};
@@ -23,10 +24,12 @@ export function FeesForm({
   action,
   submitLabel,
   defaults,
+  yearOptions,
 }: {
   action: FeeFormAction;
   submitLabel: string;
   defaults: FeeDefaults;
+  yearOptions: string[];
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const err = (name: string) => state.fieldErrors?.[name];
@@ -42,16 +45,26 @@ export function FeesForm({
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Academic year" hint="e.g. 2025-26">
-          <TextInput
-            name="academic_year"
-            defaultValue={defaults.academic_year}
-            required
-          />
+        <Field label="Academic year">
+          <Select name="academic_year" defaultValue={defaults.academic_year} required>
+            <option value="">Select Year</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
           {err('academic_year') ? <FieldError message={err('academic_year')!} /> : null}
         </Field>
-        <Field label="Term" hint="Optional, e.g. Fall / Spring">
-          <TextInput name="academic_term" defaultValue={defaults.academic_term} />
+        <Field label="Term">
+          <Select name="academic_term" defaultValue={defaults.academic_term}>
+            <option value="">Select Term</option>
+            {ACADEMIC_TERMS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </Select>
         </Field>
       </div>
 
