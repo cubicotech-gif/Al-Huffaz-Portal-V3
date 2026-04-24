@@ -1,14 +1,17 @@
 import Link from 'next/link';
 import { SignOutButton } from '@/components/signout-button';
+import { NotificationBell } from '@/components/notification-bell';
 
 export function DashboardShell({
   role,
   name,
   children,
+  notificationsHref = '/sponsor/notifications',
 }: {
   role: string;
   name: string;
   children: React.ReactNode;
+  notificationsHref?: string;
 }) {
   return (
     <div className="min-h-screen">
@@ -25,8 +28,9 @@ export function DashboardShell({
               <p className="text-sm font-semibold text-slate-900">Al-Huffaz Education Portal</p>
             </div>
           </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-600">{name}</span>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm text-slate-600 sm:inline">{name}</span>
+            <NotificationBell href={notificationsHref} />
             <SignOutButton />
           </div>
         </div>
