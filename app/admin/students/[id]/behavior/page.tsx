@@ -3,10 +3,12 @@ import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/auth';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { StudentTabs } from '@/components/student-tabs';
+import { RatingStarsDisplay } from '@/components/rating-stars';
 import { createClient } from '@/lib/supabase/server';
 import { deleteBehaviorAction, saveBehaviorAction } from '@/lib/students/related/actions';
 import { getBehavior, listBehavior } from '@/lib/students/related/queries';
-import { goalsToString } from '@/lib/students/related/schema';
+import { goalsToArray } from '@/lib/students/related/schema';
+import { academicYearOptions } from '@/lib/students/schema';
 import { BehaviorForm, type BehaviorDefaults } from './behavior-form';
 
 export const runtime = 'edge';
@@ -14,13 +16,15 @@ export const runtime = 'edge';
 const EMPTY: BehaviorDefaults = {
   academic_year: '',
   academic_term: '',
-  homework_completion: '',
-  class_participation: '',
-  group_work: '',
-  problem_solving: '',
-  organization: '',
+  homework_completion: null,
+  class_participation: null,
+  group_work: null,
+  problem_solving: null,
+  organization: null,
   teacher_comments: '',
-  goals_text: '',
+  goal_1: '',
+  goal_2: '',
+  goal_3: '',
 };
 
 export default async function StudentBehaviorPage({
@@ -42,25 +46,31 @@ export default async function StudentBehaviorPage({
     .single();
   if (!student) notFound();
 
-  const [rows, editing] = await Promise.all([
+  const [rows, editing, { data: school }] = await Promise.all([
     listBehavior(id),
     edit ? getBehavior(edit) : null,
+    supabase.from('schools').select('academic_year').limit(1).single(),
   ]);
+  const yearOptions = academicYearOptions(school?.academic_year ?? null);
   const editingRow = editing && editing.student_id === id ? editing : null;
 
-  const defaults: BehaviorDefaults = editingRow
-    ? {
-        academic_year: editingRow.academic_year ?? '',
-        academic_term: editingRow.academic_term ?? '',
-        homework_completion: editingRow.homework_completion ?? '',
-        class_participation: editingRow.class_participation ?? '',
-        group_work: editingRow.group_work ?? '',
-        problem_solving: editingRow.problem_solving ?? '',
-        organization: editingRow.organization ?? '',
-        teacher_comments: editingRow.teacher_comments ?? '',
-        goals_text: goalsToString(editingRow.goals),
-      }
-    : EMPTY;
+  let defaults: BehaviorDefaults = EMPTY;
+  if (editingRow) {
+    const goals = goalsToArray(editingRow.goals);
+    defaults = {
+      academic_year: editingRow.academic_year ?? '',
+      academic_term: editingRow.academic_term ?? '',
+      homework_completion: editingRow.homework_completion ?? null,
+      class_participation: editingRow.class_participation ?? null,
+      group_work: editingRow.group_work ?? null,
+      problem_solving: editingRow.problem_solving ?? null,
+      organization: editingRow.organization ?? null,
+      teacher_comments: editingRow.teacher_comments ?? '',
+      goal_1: goals[0] ?? '',
+      goal_2: goals[1] ?? '',
+      goal_3: goals[2] ?? '',
+    };
+  }
 
   const action = saveBehaviorAction.bind(null, id, editingRow?.id ?? null);
 
@@ -92,6 +102,7 @@ export default async function StudentBehaviorPage({
           action={action}
           defaults={defaults}
           submitLabel={editingRow ? 'Save changes' : 'Add record'}
+          yearOptions={yearOptions}
         />
         {editingRow ? (
           <div className="mt-3">
@@ -116,11 +127,11 @@ export default async function StudentBehaviorPage({
       ) : (
         <div className="space-y-3">
           {rows.map((r) => {
-            const goals = Array.isArray(r.goals) ? (r.goals as unknown[]).filter((g) => typeof g === 'string') as string[] : [];
+            const goals = goalsToArray(r.goals);
             const del = deleteBehaviorAction.bind(null, id, r.id);
             return (
               <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mb-3 flex items-start justify-between">
+                <div className="mb-4 flex items-start justify-between">
                   <p className="font-semibold text-slate-900">
                     {r.academic_year} · {r.academic_term}
                   </p>
@@ -142,16 +153,16 @@ export default async function StudentBehaviorPage({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                  <Row label="Homework" value={r.homework_completion} />
-                  <Row label="Class participation" value={r.class_participation} />
-                  <Row label="Group work" value={r.group_work} />
-                  <Row label="Problem solving" value={r.problem_solving} />
-                  <Row label="Organization" value={r.organization} />
+                <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  <RatingRow label="Homework" value={r.homework_completion} />
+                  <RatingRow label="Class participation" value={r.class_participation} />
+                  <RatingRow label="Group work" value={r.group_work} />
+                  <RatingRow label="Problem solving" value={r.problem_solving} />
+                  <RatingRow label="Organization" value={r.organization} />
                 </div>
 
                 {r.teacher_comments ? (
-                  <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
                     <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">
                       Teacher comments
                     </p>
@@ -160,15 +171,23 @@ export default async function StudentBehaviorPage({
                 ) : null}
 
                 {goals.length > 0 ? (
-                  <div className="mt-3">
-                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                  <div className="mt-4">
+                    <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
                       Goals
                     </p>
-                    <ul className="list-disc space-y-0.5 pl-5 text-sm text-slate-700">
-                      {goals.map((g, i) => (
-                        <li key={`${r.id}-goal-${i}`}>{g}</li>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {goals.slice(0, 3).map((g, i) => (
+                        <div
+                          key={`${r.id}-goal-${i}`}
+                          className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                        >
+                          <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                            Goal {i + 1}
+                          </p>
+                          {g}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -180,11 +199,14 @@ export default async function StudentBehaviorPage({
   );
 }
 
-function Row({ label, value }: { label: string; value: string | null }) {
+function RatingRow({ label, value }: { label: string; value: number | null }) {
   return (
     <div>
       <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-0.5 text-sm text-slate-800">{value || '—'}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <RatingStarsDisplay value={value} />
+        {value != null ? <span className="text-xs text-slate-500">{value}/5</span> : null}
+      </div>
     </div>
   );
 }

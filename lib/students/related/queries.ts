@@ -50,3 +50,20 @@ export async function getBehavior(id: string) {
   const { data } = await supabase.from('student_behavior').select('*').eq('id', id).single();
   return data ?? null;
 }
+
+export async function listAttendance(studentId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('student_attendance')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('academic_year', { ascending: false })
+    .order('academic_term', { ascending: false });
+  return data ?? [];
+}
+
+export async function getAttendance(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from('student_attendance').select('*').eq('id', id).single();
+  return data ?? null;
+}

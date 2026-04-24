@@ -12,7 +12,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('students')
     .select(
-      'id, full_name, gr_number, roll_number, gender, date_of_birth, admission_date, grade_level, islamic_category, donation_eligible, zakat_eligible, is_sponsored, archived_at, father_name, father_phone, guardian_name, guardian_phone, permanent_address, blood_group, created_at',
+      'id, full_name, gr_number, roll_number, gender, date_of_birth, admission_date, grade_level, islamic_category, donation_eligible, zakat_eligible, is_sponsored, archived_at, father_name, guardian_name, guardian_phone, permanent_address, blood_group, created_at',
     )
     .order('created_at', { ascending: false });
   if (error) return new Response(error.message, { status: 500 });
@@ -32,7 +32,6 @@ export async function GET() {
     { key: 'is_sponsored', header: 'is_sponsored' },
     { key: 'archived_at', header: 'archived_at' },
     { key: 'father_name', header: 'father_name' },
-    { key: 'father_phone', header: 'father_phone' },
     { key: 'guardian_name', header: 'guardian_name' },
     { key: 'guardian_phone', header: 'guardian_phone' },
     { key: 'permanent_address', header: 'permanent_address' },

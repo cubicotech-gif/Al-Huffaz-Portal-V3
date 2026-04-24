@@ -38,7 +38,6 @@ export const studentFormSchema = z.object({
 
   father_name: optionalString,
   father_cnic: optionalString,
-  father_phone: optionalString,
   father_email: optionalString,
   guardian_name: optionalString,
   guardian_cnic: optionalString,
@@ -89,5 +88,54 @@ export const ISLAMIC_CATEGORIES = [
   { value: 'qaidah', label: 'Qaidah' },
   { value: 'none', label: 'None' },
 ] as const;
+
+export const RELATIONSHIPS = [
+  'Father',
+  'Mother',
+  'Uncle',
+  'Aunt',
+  'Grandfather',
+  'Grandmother',
+  'Brother',
+  'Sister',
+  'Guardian',
+  'Other',
+] as const;
+
+export const ACADEMIC_TERMS = [
+  { value: 'Mid Term', label: 'Mid Term' },
+  { value: 'Annual', label: 'Annual' },
+] as const;
+
+export const EXAM_MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+// Generates a list of academic-year options centred on the school's
+// configured year (if any), covering a 5-year window.
+export function academicYearOptions(current?: string | null): string[] {
+  const now = new Date();
+  const thisYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const base = current && /^\d{4}-\d{2}$/.test(current)
+    ? Number(current.slice(0, 4))
+    : thisYear;
+  const years: string[] = [];
+  for (let y = base - 2; y <= base + 2; y += 1) {
+    const next = String((y + 1) % 100).padStart(2, '0');
+    years.push(`${y}-${next}`);
+  }
+  return years;
+}
 
 export const SCHOOL_ID = '00000000-0000-0000-0000-000000000001';

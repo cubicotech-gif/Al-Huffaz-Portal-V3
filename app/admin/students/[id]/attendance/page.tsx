@@ -3,32 +3,30 @@ import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/auth';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { StudentTabs } from '@/components/student-tabs';
-import { formatMinorUnits } from '@/lib/money';
-import { deleteFeeAction, saveFeeAction } from '@/lib/students/related/actions';
-import { getFee, listFees } from '@/lib/students/related/queries';
-import { academicYearOptions } from '@/lib/students/schema';
 import { createClient } from '@/lib/supabase/server';
-import { FeesForm, type FeeDefaults } from './fees-form';
+import {
+  deleteAttendanceAction,
+  saveAttendanceAction,
+} from '@/lib/students/related/actions';
+import { getAttendance, listAttendance } from '@/lib/students/related/queries';
+import { academicYearOptions } from '@/lib/students/schema';
+import { AttendanceForm, type AttendanceDefaults } from './attendance-form';
 
 export const runtime = 'edge';
 
-const EMPTY: FeeDefaults = {
+const EMPTY: AttendanceDefaults = {
   academic_year: '',
   academic_term: '',
-  monthly_fee_major: '',
-  course_fee_major: '',
-  uniform_fee_major: '',
-  annual_fee_major: '',
-  admission_fee_major: '',
+  total_school_days: '',
+  present_days: '',
 };
 
-function toMajor(minor: number | bigint | null | undefined): string {
-  if (minor == null) return '';
-  const n = typeof minor === 'bigint' ? Number(minor) : minor;
-  return String(n / 100);
+function percent(total: number, present: number): number | null {
+  if (total <= 0) return null;
+  return Math.round((present / total) * 1000) / 10;
 }
 
-export default async function StudentFeesPage({
+export default async function StudentAttendancePage({
   params,
   searchParams,
 }: {
@@ -48,26 +46,23 @@ export default async function StudentFeesPage({
   if (!student) notFound();
 
   const [rows, editing, { data: school }] = await Promise.all([
-    listFees(id),
-    edit ? getFee(edit) : null,
+    listAttendance(id),
+    edit ? getAttendance(edit) : null,
     supabase.from('schools').select('academic_year').limit(1).single(),
   ]);
   const yearOptions = academicYearOptions(school?.academic_year ?? null);
-
   const editingRow = editing && editing.student_id === id ? editing : null;
-  const defaults: FeeDefaults = editingRow
+
+  const defaults: AttendanceDefaults = editingRow
     ? {
         academic_year: editingRow.academic_year ?? '',
         academic_term: editingRow.academic_term ?? '',
-        monthly_fee_major: toMajor(editingRow.monthly_fee),
-        course_fee_major: toMajor(editingRow.course_fee),
-        uniform_fee_major: toMajor(editingRow.uniform_fee),
-        annual_fee_major: toMajor(editingRow.annual_fee),
-        admission_fee_major: toMajor(editingRow.admission_fee),
+        total_school_days: String(editingRow.total_school_days ?? ''),
+        present_days: String(editingRow.present_days ?? ''),
       }
     : EMPTY;
 
-  const action = saveFeeAction.bind(null, id, editingRow?.id ?? null);
+  const action = saveAttendanceAction.bind(null, id, editingRow?.id ?? null);
 
   return (
     <DashboardShell
@@ -83,15 +78,17 @@ export default async function StudentFeesPage({
           ← Back to students
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-slate-900">{student.full_name}</h1>
-        <p className="text-sm text-slate-600">GR #{student.gr_number ?? '—'} · Fees</p>
+        <p className="text-sm text-slate-600">GR #{student.gr_number ?? '—'} · Attendance</p>
       </div>
-      <StudentTabs id={id} active="fees" />
+      <StudentTabs id={id} active="attendance" />
 
       <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-600">
-          {editingRow ? `Edit ${editingRow.academic_year}${editingRow.academic_term ? ' · ' + editingRow.academic_term : ''}` : 'Add fee record'}
+          {editingRow
+            ? `Edit ${editingRow.academic_year} · ${editingRow.academic_term}`
+            : 'Add attendance record'}
         </h2>
-        <FeesForm
+        <AttendanceForm
           action={action}
           defaults={defaults}
           submitLabel={editingRow ? 'Save changes' : 'Add record'}
@@ -100,7 +97,7 @@ export default async function StudentFeesPage({
         {editingRow ? (
           <div className="mt-3">
             <Link
-              href={`/admin/students/${id}/fees`}
+              href={`/admin/students/${id}/attendance`}
               className="text-xs font-semibold text-slate-600 hover:underline"
             >
               Cancel edit
@@ -115,7 +112,7 @@ export default async function StudentFeesPage({
 
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">
-          No fee records yet.
+          No attendance records yet.
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -123,32 +120,32 @@ export default async function StudentFeesPage({
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-600">
               <tr>
                 <th className="px-4 py-3">Year · term</th>
-                <th className="px-4 py-3">Monthly</th>
-                <th className="px-4 py-3">Course</th>
-                <th className="px-4 py-3">Uniform</th>
-                <th className="px-4 py-3">Annual</th>
-                <th className="px-4 py-3">Admission</th>
+                <th className="px-4 py-3">Total days</th>
+                <th className="px-4 py-3">Present</th>
+                <th className="px-4 py-3">Attendance</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {rows.map((r) => {
-                const del = deleteFeeAction.bind(null, id, r.id);
+                const pct = percent(Number(r.total_school_days ?? 0), Number(r.present_days ?? 0));
+                const tone = pct == null ? 'text-slate-400' : pct < 70 ? 'text-rose-600' : pct < 85 ? 'text-amber-600' : 'text-emerald-600';
+                const del = deleteAttendanceAction.bind(null, id, r.id);
                 return (
                   <tr key={r.id}>
                     <td className="px-4 py-3 font-medium text-slate-800">
                       {r.academic_year}
                       {r.academic_term ? <span className="text-slate-500"> · {r.academic_term}</span> : null}
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{formatMinorUnits(r.monthly_fee)}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatMinorUnits(r.course_fee)}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatMinorUnits(r.uniform_fee)}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatMinorUnits(r.annual_fee)}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatMinorUnits(r.admission_fee)}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.total_school_days}</td>
+                    <td className="px-4 py-3 text-slate-700">{r.present_days}</td>
+                    <td className={`px-4 py-3 font-semibold ${tone}`}>
+                      {pct == null ? '—' : `${pct}%`}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <Link
-                          href={`/admin/students/${id}/fees?edit=${r.id}`}
+                          href={`/admin/students/${id}/attendance?edit=${r.id}`}
                           className="text-sm font-semibold text-brand-600 hover:underline"
                         >
                           Edit

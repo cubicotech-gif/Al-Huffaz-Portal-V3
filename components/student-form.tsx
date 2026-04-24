@@ -5,13 +5,25 @@ import { useActionState } from 'react';
 import {
   Checkbox,
   Field,
-  SectionHeading,
   Select,
   Textarea,
   TextInput,
 } from '@/components/form-fields';
 import { FormError } from '@/components/auth-card';
-import { GENDERS, GRADE_LEVELS, ISLAMIC_CATEGORIES } from '@/lib/students/schema';
+import { AccordionSection } from '@/components/accordion';
+import {
+  IconBookOpen,
+  IconGraduationCap,
+  IconHeart,
+  IconShield,
+  IconUsers,
+} from '@/components/icons';
+import {
+  GENDERS,
+  GRADE_LEVELS,
+  ISLAMIC_CATEGORIES,
+  RELATIONSHIPS,
+} from '@/lib/students/schema';
 
 export type StudentFormState = {
   error?: string;
@@ -37,7 +49,6 @@ export type StudentFormDefaults = {
   current_address?: string | null;
   father_name?: string | null;
   father_cnic?: string | null;
-  father_phone?: string | null;
   father_email?: string | null;
   guardian_name?: string | null;
   guardian_cnic?: string | null;
@@ -58,6 +69,8 @@ export type StudentFormDefaults = {
 
 const INITIAL: StudentFormState = {};
 
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as const;
+
 export function StudentForm({
   action,
   defaults = {},
@@ -69,9 +82,10 @@ export function StudentForm({
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
   const err = (name: string) => state.fieldErrors?.[name];
+  const isNew = !defaults.id;
 
   return (
-    <form action={formAction} className="space-y-10" encType="multipart/form-data">
+    <form action={formAction} className="space-y-4" encType="multipart/form-data">
       <FormError message={state.error} />
       {state.savedAt ? (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -79,13 +93,15 @@ export function StudentForm({
         </div>
       ) : null}
 
-      <section className="space-y-4">
-        <SectionHeading
-          title="Basic"
-          description="Identity and current enrollment."
-        />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Full name">
+      {/* Basic Information */}
+      <AccordionSection
+        title="Basic Information"
+        description="Identity, enrollment, and address."
+        icon={IconGraduationCap}
+        defaultOpen
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label="Student full name">
             <TextInput name="full_name" defaultValue={defaults.full_name ?? ''} required />
             {err('full_name') ? <FieldError message={err('full_name')!} /> : null}
           </Field>
@@ -97,7 +113,7 @@ export function StudentForm({
           </Field>
           <Field label="Gender">
             <Select name="gender" defaultValue={defaults.gender ?? ''}>
-              <option value="">—</option>
+              <option value="">Select Gender</option>
               {GENDERS.map((g) => (
                 <option key={g.value} value={g.value}>
                   {g.label}
@@ -113,7 +129,7 @@ export function StudentForm({
           </Field>
           <Field label="Grade level">
             <Select name="grade_level" defaultValue={defaults.grade_level ?? ''}>
-              <option value="">—</option>
+              <option value="">Select Grade</option>
               {GRADE_LEVELS.map((g) => (
                 <option key={g} value={g}>
                   {g}
@@ -121,7 +137,7 @@ export function StudentForm({
               ))}
             </Select>
           </Field>
-          <Field label="Islamic category">
+          <Field label="Islamic studies">
             <Select name="islamic_category" defaultValue={defaults.islamic_category ?? 'none'}>
               {ISLAMIC_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
@@ -132,9 +148,9 @@ export function StudentForm({
           </Field>
         </div>
 
-        <div className="flex items-start gap-6">
+        <div className="mt-4 flex items-start gap-6">
           <div className="flex-1">
-            <Field label="Photo" hint="JPEG, PNG, or WebP. Max 2 MB.">
+            <Field label="Student photo" hint="JPEG, PNG, or WebP. Max 2 MB.">
               <input
                 type="file"
                 name="photo"
@@ -142,7 +158,6 @@ export function StudentForm({
                 className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
               />
             </Field>
-            {err('photo') ? <FieldError message={err('photo')!} /> : null}
           </div>
           {defaults.photo_signed_url ? (
             <div>
@@ -156,11 +171,8 @@ export function StudentForm({
             </div>
           ) : null}
         </div>
-      </section>
 
-      <section className="space-y-4">
-        <SectionHeading title="Address" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Permanent address">
             <Textarea name="permanent_address" defaultValue={defaults.permanent_address ?? ''} />
           </Field>
@@ -168,103 +180,178 @@ export function StudentForm({
             <Textarea name="current_address" defaultValue={defaults.current_address ?? ''} />
           </Field>
         </div>
-      </section>
+      </AccordionSection>
 
-      <section className="space-y-4">
-        <SectionHeading title="Family & guardians" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Father name">
+      {/* Family Information */}
+      <AccordionSection
+        title="Family Information"
+        description="Father, guardian, and emergency contact."
+        icon={IconUsers}
+        defaultOpen={isNew}
+      >
+        <h3 className="mb-2 text-sm font-semibold text-slate-800">Father&apos;s information</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Father's name">
             <TextInput name="father_name" defaultValue={defaults.father_name ?? ''} />
           </Field>
-          <Field label="Father CNIC">
-            <TextInput name="father_cnic" defaultValue={defaults.father_cnic ?? ''} />
+          <Field label="Father's CNIC" hint="XXXXX-XXXXXXX-X">
+            <TextInput
+              name="father_cnic"
+              placeholder="XXXXX-XXXXXXX-X"
+              defaultValue={defaults.father_cnic ?? ''}
+            />
           </Field>
-          <Field label="Father phone">
-            <TextInput name="father_phone" defaultValue={defaults.father_phone ?? ''} />
-          </Field>
-          <Field label="Father email">
+          <Field label="Father's email">
             <TextInput type="email" name="father_email" defaultValue={defaults.father_email ?? ''} />
           </Field>
+        </div>
+
+        <h3 className="mb-2 mt-6 text-sm font-semibold text-slate-800">Guardian information</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Guardian name">
             <TextInput name="guardian_name" defaultValue={defaults.guardian_name ?? ''} />
           </Field>
+          <Field label="Guardian CNIC" hint="XXXXX-XXXXXXX-X">
+            <TextInput
+              name="guardian_cnic"
+              placeholder="XXXXX-XXXXXXX-X"
+              defaultValue={defaults.guardian_cnic ?? ''}
+            />
+          </Field>
           <Field label="Relationship">
-            <TextInput name="relationship" defaultValue={defaults.relationship ?? ''} />
-          </Field>
-          <Field label="Guardian CNIC">
-            <TextInput name="guardian_cnic" defaultValue={defaults.guardian_cnic ?? ''} />
-          </Field>
-          <Field label="Guardian phone">
-            <TextInput name="guardian_phone" defaultValue={defaults.guardian_phone ?? ''} />
-          </Field>
-          <Field label="Guardian WhatsApp">
-            <TextInput name="guardian_whatsapp" defaultValue={defaults.guardian_whatsapp ?? ''} />
+            <Select name="relationship" defaultValue={defaults.relationship ?? ''}>
+              <option value="">Select</option>
+              {RELATIONSHIPS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Guardian email">
-            <TextInput type="email" name="guardian_email" defaultValue={defaults.guardian_email ?? ''} />
+            <TextInput
+              type="email"
+              name="guardian_email"
+              defaultValue={defaults.guardian_email ?? ''}
+            />
           </Field>
-          <Field label="Emergency contact">
-            <TextInput name="emergency_contact" defaultValue={defaults.emergency_contact ?? ''} />
+          <Field label="Guardian phone">
+            <TextInput
+              type="tel"
+              name="guardian_phone"
+              defaultValue={defaults.guardian_phone ?? ''}
+            />
           </Field>
-          <Field label="Emergency WhatsApp">
-            <TextInput name="emergency_whatsapp" defaultValue={defaults.emergency_whatsapp ?? ''} />
+          <Field label="Guardian WhatsApp">
+            <TextInput
+              type="tel"
+              name="guardian_whatsapp"
+              defaultValue={defaults.guardian_whatsapp ?? ''}
+            />
           </Field>
         </div>
-      </section>
 
-      <section className="space-y-4">
-        <SectionHeading title="Health" />
+        <h3 className="mb-2 mt-6 text-sm font-semibold text-slate-800">Emergency contact</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Blood group">
-            <TextInput name="blood_group" defaultValue={defaults.blood_group ?? ''} />
+          <Field label="Emergency phone">
+            <TextInput
+              type="tel"
+              name="emergency_contact"
+              defaultValue={defaults.emergency_contact ?? ''}
+            />
           </Field>
+          <Field label="Emergency WhatsApp">
+            <TextInput
+              type="tel"
+              name="emergency_whatsapp"
+              defaultValue={defaults.emergency_whatsapp ?? ''}
+            />
+          </Field>
+        </div>
+      </AccordionSection>
+
+      {/* Health */}
+      <AccordionSection
+        title="Health"
+        description="Medical information and initial health assessment."
+        icon={IconHeart}
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Blood group">
+            <Select name="blood_group" defaultValue={defaults.blood_group ?? ''}>
+              <option value="">Select</option>
+              {BLOOD_GROUPS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Health rating (1–5)">
+            <TextInput
+              type="number"
+              min={1}
+              max={5}
+              name="health_rating"
+              defaultValue={defaults.health_rating ?? ''}
+            />
+          </Field>
+          <Field label="Cleanness rating (1–5)">
+            <TextInput
+              type="number"
+              min={1}
+              max={5}
+              name="cleanness_rating"
+              defaultValue={defaults.cleanness_rating ?? ''}
+            />
+          </Field>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Allergies">
             <Textarea name="allergies" defaultValue={defaults.allergies ?? ''} rows={2} />
           </Field>
           <Field label="Medical conditions">
-            <Textarea name="medical_conditions" defaultValue={defaults.medical_conditions ?? ''} rows={2} />
+            <Textarea
+              name="medical_conditions"
+              defaultValue={defaults.medical_conditions ?? ''}
+              rows={2}
+            />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Health rating (1–5)">
-              <TextInput
-                type="number"
-                min={1}
-                max={5}
-                name="health_rating"
-                defaultValue={defaults.health_rating ?? ''}
-              />
-            </Field>
-            <Field label="Cleanness rating (1–5)">
-              <TextInput
-                type="number"
-                min={1}
-                max={5}
-                name="cleanness_rating"
-                defaultValue={defaults.cleanness_rating ?? ''}
-              />
-            </Field>
-          </div>
         </div>
-      </section>
+      </AccordionSection>
 
-      <section className="space-y-3">
-        <SectionHeading
-          title="Eligibility"
-          description="Controls whether the student appears in the public available-students list."
-        />
+      {/* Financial Aid Eligibility */}
+      <AccordionSection
+        title="Financial aid eligibility"
+        description="Controls whether the student appears in the public sponsorship list."
+        icon={IconShield}
+        defaultOpen={isNew}
+      >
         <div className="space-y-2">
           <Checkbox
             name="zakat_eligible"
-            label="Zakat eligible"
+            label="Eligible for Zakat"
             defaultChecked={defaults.zakat_eligible ?? false}
           />
           <Checkbox
             name="donation_eligible"
-            label="Donation eligible (visible to sponsors when unsponsored)"
+            label="Eligible for Donations / Sponsorship (shows in public students list when unsponsored)"
             defaultChecked={defaults.donation_eligible ?? false}
           />
         </div>
-      </section>
+      </AccordionSection>
+
+      {!isNew ? (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+          <p className="flex items-start gap-2">
+            <IconBookOpen className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-500" />
+            <span>
+              Per-term <strong>fees</strong>, <strong>academics</strong>, and{' '}
+              <strong>behaviour</strong> are edited in their own tabs above.
+            </span>
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-3 border-t border-slate-200 pt-6">
         <button
@@ -275,7 +362,7 @@ export function StudentForm({
           {pending ? 'Saving…' : submitLabel}
         </button>
         <Link
-          href="/admin/students"
+          href={defaults.id ? `/admin/students/${defaults.id}` : '/admin/students'}
           className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300"
         >
           Cancel

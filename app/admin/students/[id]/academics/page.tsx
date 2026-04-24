@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { deleteAcademicsAction, saveAcademicsAction } from '@/lib/students/related/actions';
 import { getAcademics, listAcademics } from '@/lib/students/related/queries';
 import { subjectsToString, type SubjectRow } from '@/lib/students/related/schema';
+import { academicYearOptions } from '@/lib/students/schema';
 import { AcademicsForm, type AcademicsDefaults } from './academics-form';
 
 export const runtime = 'edge';
@@ -52,10 +53,12 @@ export default async function StudentAcademicsPage({
     .single();
   if (!student) notFound();
 
-  const [rows, editing] = await Promise.all([
+  const [rows, editing, { data: school }] = await Promise.all([
     listAcademics(id),
     edit ? getAcademics(edit) : null,
+    supabase.from('schools').select('academic_year').limit(1).single(),
   ]);
+  const yearOptions = academicYearOptions(school?.academic_year ?? null);
   const editingRow = editing && editing.student_id === id ? editing : null;
 
   const defaults: AcademicsDefaults = editingRow
@@ -98,6 +101,7 @@ export default async function StudentAcademicsPage({
           action={action}
           defaults={defaults}
           submitLabel={editingRow ? 'Save changes' : 'Add record'}
+          yearOptions={yearOptions}
         />
         {editingRow ? (
           <div className="mt-3">

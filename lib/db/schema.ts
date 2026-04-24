@@ -131,7 +131,6 @@ export const students = pgTable(
 
     fatherName: text('father_name'),
     fatherCnic: text('father_cnic'),
-    fatherPhone: text('father_phone'),
     fatherEmail: text('father_email'),
     guardianName: text('guardian_name'),
     guardianCnic: text('guardian_cnic'),

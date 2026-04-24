@@ -82,26 +82,25 @@ export type AcademicsFormInput = z.infer<typeof academicsFormSchema>;
 
 // Behavior ----------------------------------------------------------------
 
-export const BEHAVIOR_RATINGS = [
-  'Excellent',
-  'Very good',
-  'Good',
-  'Satisfactory',
-  'Needs improvement',
-  'Unsatisfactory',
-] as const;
+// Ratings are 1-5 stars, stored as smallint per migration 0009.
+const optionalStar = z.preprocess(
+  (v) => (v === '' || v == null ? null : Number(v)),
+  z.number().int().min(1).max(5).nullable(),
+);
 
 export const behaviorFormSchema = z
   .object({
     academic_year: z.string().trim().min(1, 'Academic year is required'),
     academic_term: z.string().trim().min(1, 'Term is required'),
-    homework_completion: optionalString,
-    class_participation: optionalString,
-    group_work: optionalString,
-    problem_solving: optionalString,
-    organization: optionalString,
+    homework_completion: optionalStar,
+    class_participation: optionalStar,
+    group_work: optionalStar,
+    problem_solving: optionalStar,
+    organization: optionalStar,
     teacher_comments: optionalString,
-    goals_text: z.string().default(''),
+    goal_1: optionalString,
+    goal_2: optionalString,
+    goal_3: optionalString,
   })
   .transform((v) => ({
     academic_year: v.academic_year,
@@ -112,14 +111,29 @@ export const behaviorFormSchema = z
     problem_solving: v.problem_solving,
     organization: v.organization,
     teacher_comments: v.teacher_comments,
-    goals: v.goals_text
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean),
+    goals: [v.goal_1, v.goal_2, v.goal_3].filter(
+      (g): g is string => typeof g === 'string' && g.length > 0,
+    ),
   }));
 export type BehaviorFormInput = z.infer<typeof behaviorFormSchema>;
 
-export function goalsToString(goals: unknown): string {
-  if (!Array.isArray(goals)) return '';
-  return goals.filter((g) => typeof g === 'string').join('\n');
+export function goalsToArray(goals: unknown): string[] {
+  if (!Array.isArray(goals)) return [];
+  return goals.filter((g): g is string => typeof g === 'string');
 }
+
+// Attendance --------------------------------------------------------------
+
+export const attendanceFormSchema = z.object({
+  academic_year: z.string().trim().min(1, 'Academic year is required'),
+  academic_term: z.string().trim().min(1, 'Term is required'),
+  total_school_days: z.preprocess(
+    (v) => (v === '' || v == null ? 0 : Number(v)),
+    z.number().int().min(0),
+  ),
+  present_days: z.preprocess(
+    (v) => (v === '' || v == null ? 0 : Number(v)),
+    z.number().int().min(0),
+  ),
+});
+export type AttendanceFormInput = z.infer<typeof attendanceFormSchema>;

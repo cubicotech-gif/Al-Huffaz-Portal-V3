@@ -1,39 +1,44 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { FormError } from '@/components/auth-card';
 import { Field, Select, TextInput } from '@/components/form-fields';
 import { ACADEMIC_TERMS } from '@/lib/students/schema';
 import type { RelatedFormState } from '@/lib/students/related/actions';
 
-const INITIAL: RelatedFormState = {};
-
-type FeeFormAction = (prev: RelatedFormState, formData: FormData) => Promise<RelatedFormState>;
-
-export type FeeDefaults = {
+export type AttendanceDefaults = {
   academic_year: string;
   academic_term: string;
-  monthly_fee_major: string;
-  course_fee_major: string;
-  uniform_fee_major: string;
-  annual_fee_major: string;
-  admission_fee_major: string;
+  total_school_days: string;
+  present_days: string;
 };
 
-export function FeesForm({
+type Action = (prev: RelatedFormState, formData: FormData) => Promise<RelatedFormState>;
+const INITIAL: RelatedFormState = {};
+
+function computePercent(total: string, present: string): number | null {
+  const t = Number(total);
+  const p = Number(present);
+  if (!Number.isFinite(t) || !Number.isFinite(p) || t <= 0) return null;
+  return Math.max(0, Math.min(100, Math.round((p / t) * 1000) / 10));
+}
+
+export function AttendanceForm({
   action,
-  submitLabel,
   defaults,
+  submitLabel,
   yearOptions,
 }: {
-  action: FeeFormAction;
+  action: Action;
+  defaults: AttendanceDefaults;
   submitLabel: string;
-  defaults: FeeDefaults;
   yearOptions: string[];
 }) {
   const [state, formAction, pending] = useActionState(action, INITIAL);
+  const [total, setTotal] = useState(defaults.total_school_days);
+  const [present, setPresent] = useState(defaults.present_days);
+  const percent = computePercent(total, present);
   const err = (name: string) => state.fieldErrors?.[name];
-  const symbol = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL ?? 'Rs.';
 
   return (
     <form action={formAction} className="space-y-4">
@@ -57,7 +62,7 @@ export function FeesForm({
           {err('academic_year') ? <FieldError message={err('academic_year')!} /> : null}
         </Field>
         <Field label="Term">
-          <Select name="academic_term" defaultValue={defaults.academic_term}>
+          <Select name="academic_term" defaultValue={defaults.academic_term} required>
             <option value="">Select Term</option>
             {ACADEMIC_TERMS.map((t) => (
               <option key={t.value} value={t.value}>
@@ -65,55 +70,43 @@ export function FeesForm({
               </option>
             ))}
           </Select>
+          {err('academic_term') ? <FieldError message={err('academic_term')!} /> : null}
         </Field>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field label={`Monthly fee (${symbol})`}>
+      <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:grid-cols-3">
+        <Field label="Total school days">
           <TextInput
             type="number"
-            step="0.01"
-            min="0"
-            name="monthly_fee"
-            defaultValue={defaults.monthly_fee_major}
+            min={0}
+            step={1}
+            name="total_school_days"
+            value={total}
+            onChange={(e) => setTotal(e.target.value)}
+            required
           />
         </Field>
-        <Field label={`Course fee (${symbol})`}>
+        <Field label="Present days">
           <TextInput
             type="number"
-            step="0.01"
-            min="0"
-            name="course_fee"
-            defaultValue={defaults.course_fee_major}
+            min={0}
+            step={1}
+            name="present_days"
+            value={present}
+            onChange={(e) => setPresent(e.target.value)}
+            required
           />
         </Field>
-        <Field label={`Uniform fee (${symbol})`}>
-          <TextInput
-            type="number"
-            step="0.01"
-            min="0"
-            name="uniform_fee"
-            defaultValue={defaults.uniform_fee_major}
-          />
-        </Field>
-        <Field label={`Annual fee (${symbol})`}>
-          <TextInput
-            type="number"
-            step="0.01"
-            min="0"
-            name="annual_fee"
-            defaultValue={defaults.annual_fee_major}
-          />
-        </Field>
-        <Field label={`Admission fee (${symbol})`}>
-          <TextInput
-            type="number"
-            step="0.01"
-            min="0"
-            name="admission_fee"
-            defaultValue={defaults.admission_fee_major}
-          />
-        </Field>
+        <div>
+          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-600">
+            Attendance %
+          </p>
+          <div className="flex h-[38px] items-center rounded-lg bg-white px-3 text-2xl font-bold">
+            <span className={percentToneClass(percent)}>
+              {percent == null ? '—' : `${percent}%`}
+            </span>
+          </div>
+        </div>
       </div>
 
       <button
@@ -125,6 +118,13 @@ export function FeesForm({
       </button>
     </form>
   );
+}
+
+function percentToneClass(p: number | null): string {
+  if (p == null) return 'text-slate-400';
+  if (p < 70) return 'text-rose-600';
+  if (p < 85) return 'text-amber-600';
+  return 'text-emerald-600';
 }
 
 function FieldError({ message }: { message: string }) {
