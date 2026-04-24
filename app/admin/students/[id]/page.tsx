@@ -4,9 +4,16 @@ import { requireRole } from '@/lib/auth';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { StudentTabs } from '@/components/student-tabs';
 import { PrintButton } from '@/components/print-button';
+import { RatingStarsDisplay } from '@/components/rating-stars';
 import { formatMinorUnits } from '@/lib/money';
 import { getStudentById, signedPhotoUrl } from '@/lib/students/queries';
-import { listAcademics, listBehavior, listFees } from '@/lib/students/related/queries';
+import {
+  listAcademics,
+  listAttendance,
+  listBehavior,
+  listFees,
+} from '@/lib/students/related/queries';
+import { goalsToArray } from '@/lib/students/related/schema';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'edge';
@@ -22,11 +29,12 @@ export default async function StudentProfilePage({
   const student = await getStudentById(id);
   if (!student) notFound();
 
-  const [photo, fees, academics, behavior, school, sponsorships] = await Promise.all([
+  const [photo, fees, academics, behavior, attendance, school, sponsorships] = await Promise.all([
     signedPhotoUrl(student.photo_url),
     listFees(id),
     listAcademics(id),
     listBehavior(id),
+    listAttendance(id),
     (await createClient())
       .from('schools')
       .select('name, academic_year, currency_symbol')
@@ -45,6 +53,7 @@ export default async function StudentProfilePage({
   const latestFee = fees[0] ?? null;
   const latestAcademics = academics[0] ?? null;
   const latestBehavior = behavior[0] ?? null;
+  const latestAttendance = attendance[0] ?? null;
 
   return (
     <DashboardShell
@@ -247,32 +256,100 @@ export default async function StudentProfilePage({
           </section>
         ) : null}
 
-        {/* Latest behaviour */}
-        {latestBehavior ? (
-          <section className="print-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <SectionHeading
-              title="Latest behaviour"
-              suffix={`${latestBehavior.academic_year} · ${latestBehavior.academic_term}`}
-            />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Homework" value={latestBehavior.homework_completion} />
-              <Field label="Class participation" value={latestBehavior.class_participation} />
-              <Field label="Group work" value={latestBehavior.group_work} />
-              <Field label="Problem solving" value={latestBehavior.problem_solving} />
-              <Field label="Organization" value={latestBehavior.organization} />
-            </div>
-            {latestBehavior.teacher_comments ? (
-              <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">
-                  Teacher comments
-                </p>
-                {latestBehavior.teacher_comments}
+        {/* Latest attendance */}
+        {latestAttendance ? (() => {
+          const total = Number(latestAttendance.total_school_days ?? 0);
+          const present = Number(latestAttendance.present_days ?? 0);
+          const pct = total > 0 ? Math.round((present / total) * 1000) / 10 : null;
+          const tone =
+            pct == null
+              ? 'text-slate-500'
+              : pct < 70
+              ? 'text-rose-600'
+              : pct < 85
+              ? 'text-amber-600'
+              : 'text-emerald-600';
+          return (
+            <section className="print-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <SectionHeading
+                title="Latest attendance"
+                suffix={`${latestAttendance.academic_year} · ${latestAttendance.academic_term}`}
+              />
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <Field label="Total school days" value={String(total)} />
+                <Field label="Present days" value={String(present)} />
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                    Attendance
+                  </p>
+                  <p className={`mt-0.5 text-xl font-bold ${tone}`}>
+                    {pct == null ? '—' : `${pct}%`}
+                  </p>
+                </div>
               </div>
-            ) : null}
-          </section>
-        ) : null}
+            </section>
+          );
+        })() : null}
+
+        {/* Latest behaviour */}
+        {latestBehavior ? (() => {
+          const goals = goalsToArray(latestBehavior.goals);
+          return (
+            <section className="print-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <SectionHeading
+                title="Latest behaviour"
+                suffix={`${latestBehavior.academic_year} · ${latestBehavior.academic_term}`}
+              />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <RatingDisplay label="Homework" value={latestBehavior.homework_completion} />
+                <RatingDisplay
+                  label="Class participation"
+                  value={latestBehavior.class_participation}
+                />
+                <RatingDisplay label="Group work" value={latestBehavior.group_work} />
+                <RatingDisplay label="Problem solving" value={latestBehavior.problem_solving} />
+                <RatingDisplay label="Organization" value={latestBehavior.organization} />
+              </div>
+              {latestBehavior.teacher_comments ? (
+                <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                    Teacher comments
+                  </p>
+                  {latestBehavior.teacher_comments}
+                </div>
+              ) : null}
+              {goals.length > 0 ? (
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {goals.slice(0, 3).map((g, i) => (
+                    <div
+                      key={`goal-${i}`}
+                      className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                    >
+                      <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                        Goal {i + 1}
+                      </p>
+                      {g}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          );
+        })() : null}
       </div>
     </DashboardShell>
+  );
+}
+
+function RatingDisplay({ label, value }: { label: string; value: number | null | undefined }) {
+  return (
+    <div>
+      <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{label}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <RatingStarsDisplay value={value ?? null} />
+        {value != null ? <span className="text-xs text-slate-500">{value}/5</span> : null}
+      </div>
+    </div>
   );
 }
 

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
 import {
   academicsFormSchema,
+  attendanceFormSchema,
   behaviorFormSchema,
   feeFormSchema,
 } from '@/lib/students/related/schema';
@@ -174,4 +175,61 @@ export async function deleteBehaviorAction(studentId: string, id: string, _formD
   if (error) throw new Error(error.message);
   await logActivity({ action: 'student_behavior.deleted', objectType: 'student_behavior', objectId: id });
   revalidatePath(`/admin/students/${studentId}/behavior`);
+}
+
+// Attendance --------------------------------------------------------------
+
+export async function saveAttendanceAction(
+  studentId: string,
+  attendanceId: string | null,
+  _prev: RelatedFormState,
+  formData: FormData,
+): Promise<RelatedFormState> {
+  const parsed = attendanceFormSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: 'Please fix the highlighted fields.', fieldErrors: collectFieldErrors(parsed.error.issues) };
+  }
+  if (parsed.data.present_days > parsed.data.total_school_days) {
+    return { error: 'Present days cannot exceed total school days.' };
+  }
+
+  const supabase = await createClient();
+  if (attendanceId) {
+    const { error } = await supabase
+      .from('student_attendance')
+      .update(parsed.data)
+      .eq('id', attendanceId);
+    if (error) return { error: error.message };
+    await logActivity({
+      action: 'student_attendance.updated',
+      objectType: 'student_attendance',
+      objectId: attendanceId,
+    });
+  } else {
+    const { error } = await supabase
+      .from('student_attendance')
+      .insert({ student_id: studentId, ...parsed.data });
+    if (error) return { error: error.message };
+    await logActivity({
+      action: 'student_attendance.created',
+      objectType: 'student_attendance',
+      objectId: studentId,
+    });
+  }
+
+  revalidatePath(`/admin/students/${studentId}/attendance`);
+  if (attendanceId) redirect(`/admin/students/${studentId}/attendance`);
+  return { savedAt: Date.now() };
+}
+
+export async function deleteAttendanceAction(studentId: string, id: string, _formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.from('student_attendance').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  await logActivity({
+    action: 'student_attendance.deleted',
+    objectType: 'student_attendance',
+    objectId: id,
+  });
+  revalidatePath(`/admin/students/${studentId}/attendance`);
 }
