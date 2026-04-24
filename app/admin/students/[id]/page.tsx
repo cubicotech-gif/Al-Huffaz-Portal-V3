@@ -13,7 +13,12 @@ import {
   listBehavior,
   listFees,
 } from '@/lib/students/related/queries';
-import { goalsToArray } from '@/lib/students/related/schema';
+import {
+  coerceSubjectsFromRaw,
+  goalsToArray,
+  subjectTotals,
+  type Subject,
+} from '@/lib/students/related/schema';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'edge';
@@ -227,34 +232,32 @@ export default async function StudentProfilePage({
         ) : null}
 
         {/* Latest academics */}
-        {latestAcademics ? (
-          <section className="print-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <SectionHeading
-              title="Latest academics"
-              suffix={`${latestAcademics.academic_year} · ${latestAcademics.academic_term}`}
-            />
-            <p className="mb-3 text-sm text-slate-600">
-              Overall:{' '}
-              <span className="font-semibold text-slate-900">
-                {latestAcademics.overall_percentage != null
-                  ? `${latestAcademics.overall_percentage}%`
-                  : '—'}
-              </span>
-            </p>
-            {Array.isArray(latestAcademics.subjects) && latestAcademics.subjects.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {(latestAcademics.subjects as Array<{ name: string; marks: number; total: number }>).map((s) => (
-                  <div key={s.name} className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                    <p className="font-medium text-slate-800">{s.name}</p>
-                    <p className="text-xs text-slate-600">
-                      {s.marks} / {s.total}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
+        {latestAcademics ? (() => {
+          const subjects = coerceSubjectsFromRaw(latestAcademics.subjects);
+          return (
+            <section className="print-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <SectionHeading
+                title="Latest academics"
+                suffix={`${latestAcademics.academic_year} · ${latestAcademics.academic_term}`}
+              />
+              <p className="mb-3 text-sm text-slate-600">
+                Overall:{' '}
+                <span className="font-semibold text-slate-900">
+                  {latestAcademics.overall_percentage != null
+                    ? `${latestAcademics.overall_percentage}%`
+                    : '—'}
+                </span>
+              </p>
+              {subjects.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {subjects.map((s, i) => (
+                    <SubjectSummaryTile key={`${latestAcademics.id}-${i}`} subject={s} />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          );
+        })() : null}
 
         {/* Latest attendance */}
         {latestAttendance ? (() => {
@@ -349,6 +352,20 @@ function RatingDisplay({ label, value }: { label: string; value: number | null |
         <RatingStarsDisplay value={value ?? null} />
         {value != null ? <span className="text-xs text-slate-500">{value}/5</span> : null}
       </div>
+    </div>
+  );
+}
+
+function SubjectSummaryTile({ subject }: { subject: Subject }) {
+  const { obtained, total } = subjectTotals(subject);
+  const pct = total > 0 ? Math.round((obtained / total) * 1000) / 10 : null;
+  return (
+    <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+      <p className="font-medium text-slate-800">{subject.name || 'Unnamed subject'}</p>
+      <p className="text-xs text-slate-600">
+        {total > 0 ? `${obtained} / ${total}` : 'No marks'}
+        {pct != null ? ` · ${pct}%` : ''}
+      </p>
     </div>
   );
 }
