@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/auth';
 import { DashboardShell } from '@/components/dashboard-shell';
 import { StudentForm, type StudentFormDefaults } from '@/components/student-form';
+import { StudentTabs } from '@/components/student-tabs';
 import {
   archiveStudentAction,
   restoreStudentAction,
@@ -68,6 +69,8 @@ export default async function EditStudentPage({
           </form>
         )}
       </div>
+
+      <StudentTabs id={id} active="" />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <StudentForm action={updateWithId} defaults={defaults} submitLabel="Save changes" />
