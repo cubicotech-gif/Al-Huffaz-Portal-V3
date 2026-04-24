@@ -2,15 +2,17 @@
 
 import { useActionState } from 'react';
 import { FormError } from '@/components/auth-card';
-import { Field, Select, Textarea, TextInput } from '@/components/form-fields';
+import { Field, Select, TextInput } from '@/components/form-fields';
+import { SubjectsEditor } from '@/components/subjects-editor';
 import { ACADEMIC_TERMS } from '@/lib/students/schema';
+import type { Subject } from '@/lib/students/related/schema';
 import type { RelatedFormState } from '@/lib/students/related/actions';
 
 export type AcademicsDefaults = {
   academic_year: string;
   academic_term: string;
   overall_percentage: string;
-  subjects_text: string;
+  subjects: Subject[];
 };
 
 type Action = (prev: RelatedFormState, formData: FormData) => Promise<RelatedFormState>;
@@ -31,7 +33,7 @@ export function AcademicsForm({
   const err = (name: string) => state.fieldErrors?.[name];
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <FormError message={state.error} />
       {state.savedAt ? (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -74,13 +76,7 @@ export function AcademicsForm({
         </Field>
       </div>
 
-      <Field label="Subjects" hint="One per line: Subject Name: marks/total (e.g. English: 85/100).">
-        <Textarea
-          name="subjects_text"
-          defaultValue={defaults.subjects_text}
-          rows={6}
-        />
-      </Field>
+      <SubjectsEditor defaultValue={defaults.subjects} />
 
       <button
         type="submit"

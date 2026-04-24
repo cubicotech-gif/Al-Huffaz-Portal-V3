@@ -6,7 +6,11 @@ import { StudentTabs } from '@/components/student-tabs';
 import { createClient } from '@/lib/supabase/server';
 import { deleteAcademicsAction, saveAcademicsAction } from '@/lib/students/related/actions';
 import { getAcademics, listAcademics } from '@/lib/students/related/queries';
-import { subjectsToString, type SubjectRow } from '@/lib/students/related/schema';
+import {
+  coerceSubjectsFromRaw,
+  subjectTotals,
+  type Subject,
+} from '@/lib/students/related/schema';
 import { academicYearOptions } from '@/lib/students/schema';
 import { AcademicsForm, type AcademicsDefaults } from './academics-form';
 
@@ -16,23 +20,8 @@ const EMPTY: AcademicsDefaults = {
   academic_year: '',
   academic_term: '',
   overall_percentage: '',
-  subjects_text: '',
+  subjects: [],
 };
-
-function subjectsFromRaw(raw: unknown): SubjectRow[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((r) => {
-      if (!r || typeof r !== 'object') return null;
-      const v = r as { name?: unknown; marks?: unknown; total?: unknown };
-      if (typeof v.name !== 'string') return null;
-      const marks = Number(v.marks);
-      const total = Number(v.total);
-      if (!Number.isFinite(marks) || !Number.isFinite(total) || total <= 0) return null;
-      return { name: v.name, marks, total };
-    })
-    .filter((r): r is SubjectRow => r !== null);
-}
 
 export default async function StudentAcademicsPage({
   params,
@@ -67,7 +56,7 @@ export default async function StudentAcademicsPage({
         academic_term: editingRow.academic_term ?? '',
         overall_percentage:
           editingRow.overall_percentage == null ? '' : String(editingRow.overall_percentage),
-        subjects_text: subjectsToString(subjectsFromRaw(editingRow.subjects)),
+        subjects: coerceSubjectsFromRaw(editingRow.subjects),
       }
     : EMPTY;
 
@@ -126,7 +115,7 @@ export default async function StudentAcademicsPage({
       ) : (
         <div className="space-y-3">
           {rows.map((r) => {
-            const subjects = subjectsFromRaw(r.subjects);
+            const subjects = coerceSubjectsFromRaw(r.subjects);
             const del = deleteAcademicsAction.bind(null, id, r.id);
             return (
               <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -137,7 +126,8 @@ export default async function StudentAcademicsPage({
                     </p>
                     <p className="text-xs text-slate-500">
                       Overall:{' '}
-                      {r.overall_percentage != null ? `${r.overall_percentage}%` : '—'}
+                      {r.overall_percentage != null ? `${r.overall_percentage}%` : '—'} ·{' '}
+                      {subjects.length} subject{subjects.length === 1 ? '' : 's'}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -158,17 +148,9 @@ export default async function StudentAcademicsPage({
                   </div>
                 </div>
                 {subjects.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {subjects.map((s) => (
-                      <div
-                        key={s.name}
-                        className="rounded-lg bg-slate-50 px-3 py-2 text-sm"
-                      >
-                        <p className="font-medium text-slate-800">{s.name}</p>
-                        <p className="text-xs text-slate-600">
-                          {s.marks} / {s.total}
-                        </p>
-                      </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {subjects.map((s, i) => (
+                      <SubjectSummaryCard key={`${r.id}-${i}`} subject={s} />
                     ))}
                   </div>
                 ) : (
@@ -180,5 +162,25 @@ export default async function StudentAcademicsPage({
         </div>
       )}
     </DashboardShell>
+  );
+}
+
+function SubjectSummaryCard({ subject }: { subject: Subject }) {
+  const { obtained, total } = subjectTotals(subject);
+  const pct = total > 0 ? Math.round((obtained / total) * 1000) / 10 : null;
+  const monthsCount = subject.monthly_exams.length;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-sm">
+      <p className="font-semibold text-slate-900">{subject.name || 'Unnamed subject'}</p>
+      <p className="mt-0.5 text-xs text-slate-600">
+        {total > 0 ? `${obtained} / ${total}` : 'No marks entered'}
+        {pct != null ? ` · ${pct}%` : ''}
+      </p>
+      <p className="mt-0.5 text-[10px] text-slate-500">
+        {monthsCount} monthly · mid-sem{subject.mid_semester ? ' ✓' : ' —'} · annual
+        {subject.annual ? ' ✓' : ' —'}
+      </p>
+    </div>
   );
 }
