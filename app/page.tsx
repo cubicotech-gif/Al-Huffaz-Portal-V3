@@ -29,6 +29,21 @@ export default function Home() {
           foundation.
         </p>
 
+        <div className="mb-8 flex gap-3">
+          <a
+            href="/login"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            Sign in
+          </a>
+          <a
+            href="/register"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand-200 hover:text-brand-700"
+          >
+            Become a sponsor
+          </a>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 text-sm">
           <StatusRow label="Framework" value="Next.js 15 (App Router)" />
           <StatusRow label="Runtime" value="Edge / Cloudflare" />

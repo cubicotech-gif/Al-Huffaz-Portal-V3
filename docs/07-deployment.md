@@ -112,15 +112,38 @@ Mark sensitive keys as "encrypted" in the Cloudflare dashboard.
 
 ## Database migrations
 
-- Use Drizzle + Supabase CLI.
-- Migration files live in `supabase/migrations/` (to be created in
-  Phase 0).
-- Apply locally:
+- Authored as raw SQL in `supabase/migrations/` (source of truth).
+- Drizzle schema in `lib/db/schema.ts` provides TypeScript types and can
+  optionally generate migrations via `drizzle-kit`; we hand-write the SQL
+  to keep RLS, triggers and views explicit.
+- Apply to a Supabase project:
   ```bash
+  # Option A — Supabase CLI (preferred once project is linked)
+  npx supabase link --project-ref <your-ref>
   npx supabase db push
+
+  # Option B — paste the SQL files into Supabase SQL Editor in order:
+  #   0001_initial_schema.sql
+  #   0002_rls_policies.sql
+  #   0003_triggers_and_views.sql
   ```
 - Apply to prod: CI step triggered on merge to `main` (after first
   deployment is working).
+
+### Creating the first admin user
+
+The `auth.users → profiles` trigger defaults every new account to
+`pending_sponsor`. To bootstrap the first admin:
+
+1. Create an account via Supabase Dashboard → Authentication → Users →
+   "Add user" (set email + password, confirm email).
+2. Open the SQL editor and run:
+   ```sql
+   update profiles
+   set role = 'admin', approved_at = now()
+   where id = (select id from auth.users where email = 'you@example.com');
+   ```
+3. Sign in at `/login` — you should land at `/admin`.
 
 ## Backups
 
