@@ -70,6 +70,18 @@ export default async function SponsorHome() {
           cta="Open"
         />
         <NavCard
+          href="/sponsor/pay"
+          title="Submit a payment"
+          body="Upload a screenshot of your transfer so we can verify it."
+          cta="Submit"
+        />
+        <NavCard
+          href="/sponsor/payments"
+          title="Payment history"
+          body="Review submitted, verified, and rejected payments."
+          cta="Open"
+        />
+        <NavCard
           href="/students"
           title="Browse more students"
           body="Find another child to sponsor."

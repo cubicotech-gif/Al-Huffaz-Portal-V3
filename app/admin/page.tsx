@@ -14,6 +14,7 @@ export default async function AdminHome() {
     { count: sponsoredStudents },
     { count: pendingSponsors },
     { count: pendingRequests },
+    { count: pendingPayments },
   ] = await Promise.all([
     supabase
       .from('students')
@@ -33,6 +34,10 @@ export default async function AdminHome() {
       .from('sponsorships')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'requested'),
+    supabase
+      .from('payments')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'submitted'),
   ]);
 
   return (
@@ -44,11 +49,12 @@ export default async function AdminHome() {
       <h1 className="mb-2 text-2xl font-bold text-slate-900">Admin dashboard</h1>
       <p className="mb-8 text-sm text-slate-600">Welcome back, {profile.full_name}.</p>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Active students" value={activeStudents ?? 0} />
         <Stat label="Sponsored" value={sponsoredStudents ?? 0} />
         <Stat label="Pending sponsors" value={pendingSponsors ?? 0} />
         <Stat label="Open requests" value={pendingRequests ?? 0} />
+        <Stat label="Payments to verify" value={pendingPayments ?? 0} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -63,6 +69,12 @@ export default async function AdminHome() {
           title="Sponsorship queue"
           body={`${pendingRequests ?? 0} request${pendingRequests === 1 ? '' : 's'} waiting for review.`}
           cta="Review"
+        />
+        <NavCard
+          href="/admin/payments?status=submitted"
+          title="Payments queue"
+          body={`${pendingPayments ?? 0} payment${pendingPayments === 1 ? '' : 's'} awaiting verification.`}
+          cta="Verify"
         />
         {profile.role === 'admin' ? (
           <NavCard
