@@ -84,6 +84,22 @@ export default async function AdminHome() {
             cta="Review"
           />
         ) : null}
+        {profile.role === 'admin' ? (
+          <NavCard
+            href="/admin/sponsors"
+            title="Sponsors"
+            body="Manage sponsor accounts — pause, reactivate, delete, re-engage."
+            cta="Open"
+          />
+        ) : null}
+        {profile.role === 'admin' ? (
+          <NavCard
+            href="/admin/staff"
+            title="Staff"
+            body="Grant or revoke staff access by email."
+            cta="Manage"
+          />
+        ) : null}
         <NavCard
           href="/admin/students/new"
           title="New student"
