@@ -33,18 +33,17 @@ export async function approveSponsorAction(profileId: string, _formData: FormDat
   if (!target) throw new Error('Profile not found');
   if (target.role !== 'pending_sponsor') throw new Error('This account is not pending approval');
 
+  // Resolve the sponsor's auth email BEFORE mutating anything. If we can't
+  // (service role key missing / API failure), fail loudly rather than
+  // creating a sponsor row with an empty email that silently breaks every
+  // future email to this sponsor.
+  const email = await resolveEmail(profileId);
+
   const { error: profileError } = await supabase
     .from('profiles')
     .update({ role: 'sponsor', approved_at: new Date().toISOString(), approved_by: user.id })
     .eq('id', profileId);
   if (profileError) throw new Error(profileError.message);
-
-  // Pull the auth email via the profiles → auth.users chain isn't directly
-  // readable from RLS; take the email from the current auth admin API via
-  // a simple select on a sibling table instead. For MVP we look it up via
-  // the session token as an admin — simplest is to store email on the
-  // sponsors row from profile metadata. We fall back to an empty string.
-  const email = await resolveEmail(profileId);
 
   const { error: sponsorError } = await supabase.from('sponsors').insert({
     profile_id: profileId,
@@ -215,18 +214,30 @@ export async function reengageSponsorAction(id: string, _formData: FormData) {
 }
 
 async function resolveEmail(profileId: string): Promise<string> {
-  // Supabase JS RLS exposes auth.users via the admin API only. For MVP we
-  // require the env var SUPABASE_SERVICE_ROLE_KEY to be present and fall
-  // back to an empty string if missing. Configuring the service role key
-  // in Cloudflare Pages unlocks this lookup.
+  // Supabase JS exposes auth.users via the admin API only, so this lookup
+  // needs the service role key. It MUST be configured (in Cloudflare Pages
+  // env) for sponsor approval to work — without a real email the sponsor
+  // would never receive verification or re-engagement mail. Fail loudly.
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return '';
+  if (!url || !key) {
+    throw new Error(
+      'Cannot approve sponsor: SUPABASE_SERVICE_ROLE_KEY is not configured, so the sponsor email cannot be resolved. Set it in the deployment environment and try again.',
+    );
+  }
   const res = await fetch(`${url}/auth/v1/admin/users/${profileId}`, {
     headers: { apikey: key, Authorization: `Bearer ${key}` },
     cache: 'no-store',
   });
-  if (!res.ok) return '';
+  if (!res.ok) {
+    throw new Error(
+      `Cannot approve sponsor: failed to resolve the sponsor's email (auth admin API returned ${res.status}).`,
+    );
+  }
   const json = (await res.json()) as { email?: string };
-  return json.email ?? '';
+  const email = json.email?.trim();
+  if (!email) {
+    throw new Error('Cannot approve sponsor: the auth account has no email on file.');
+  }
+  return email;
 }

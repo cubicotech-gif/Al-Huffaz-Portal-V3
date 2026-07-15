@@ -93,6 +93,14 @@ export default async function SponsorStudentsPage() {
                   >
                     {r.status}
                   </span>
+                  {student && ['approved', 'active', 'paused'].includes(r.status) ? (
+                    <Link
+                      href={`/sponsor/students/${student.id}`}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:text-brand-700"
+                    >
+                      Progress
+                    </Link>
+                  ) : null}
                   {['approved', 'active', 'paused'].includes(r.status) ? (
                     <Link
                       href={`/sponsor/pay?sponsorship=${r.id}`}

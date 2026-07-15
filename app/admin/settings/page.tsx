@@ -13,7 +13,9 @@ export default async function SettingsPage() {
 
   const { data: school } = await supabase
     .from('schools')
-    .select('name, email, phone, address, currency, currency_symbol, academic_year')
+    .select(
+      'name, email, phone, address, currency, currency_symbol, academic_year, bank_name, account_title, account_number, iban, swift_code, payment_instructions, email_notifications_enabled',
+    )
     .eq('id', SCHOOL_ID)
     .single();
 
@@ -25,6 +27,13 @@ export default async function SettingsPage() {
     currency: school?.currency ?? 'PKR',
     currency_symbol: school?.currency_symbol ?? 'Rs.',
     academic_year: school?.academic_year ?? null,
+    bank_name: school?.bank_name ?? null,
+    account_title: school?.account_title ?? null,
+    account_number: school?.account_number ?? null,
+    iban: school?.iban ?? null,
+    swift_code: school?.swift_code ?? null,
+    payment_instructions: school?.payment_instructions ?? null,
+    email_notifications_enabled: school?.email_notifications_enabled ?? true,
   };
 
   return (

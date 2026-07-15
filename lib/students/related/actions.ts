@@ -10,6 +10,7 @@ import {
   behaviorFormSchema,
   feeFormSchema,
 } from '@/lib/students/related/schema';
+import { overallFromSubjects } from '@/lib/students/related/grades';
 
 export type RelatedFormState = {
   error?: string;
@@ -77,12 +78,17 @@ export async function saveAcademicsAction(
     return { error: 'Please fix the highlighted fields.', fieldErrors: collectFieldErrors(parsed.error.issues) };
   }
 
+  // v2 never wrote a student-level overall; v3 computes it from the subjects
+  // when the admin leaves the field blank, and respects an explicit override.
+  const overall =
+    parsed.data.overall_percentage ?? overallFromSubjects(parsed.data.subjects).percentage;
+
   const supabase = await createClient();
   const payload = {
     academic_year: parsed.data.academic_year,
     academic_term: parsed.data.academic_term,
     subjects: parsed.data.subjects,
-    overall_percentage: parsed.data.overall_percentage,
+    overall_percentage: overall,
   };
 
   if (academicsId) {

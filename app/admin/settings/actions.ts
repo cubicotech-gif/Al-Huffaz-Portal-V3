@@ -27,6 +27,13 @@ export async function updateSchoolAction(
     currency: clean(formData.get('currency')) ?? 'PKR',
     currency_symbol: clean(formData.get('currency_symbol')) ?? 'Rs.',
     academic_year: clean(formData.get('academic_year')),
+    bank_name: clean(formData.get('bank_name')),
+    account_title: clean(formData.get('account_title')),
+    account_number: clean(formData.get('account_number')),
+    iban: clean(formData.get('iban')),
+    swift_code: clean(formData.get('swift_code')),
+    payment_instructions: clean(formData.get('payment_instructions')),
+    email_notifications_enabled: formData.get('email_notifications_enabled') === 'on',
   };
 
   const supabase = await createClient();
