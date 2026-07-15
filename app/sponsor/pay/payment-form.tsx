@@ -9,6 +9,8 @@ import { submitPaymentAction, type PaymentFormState } from '@/lib/payments/actio
 type Sponsorship = {
   id: string;
   monthly_amount: number | string;
+  plan_amount?: number | string | null;
+  sponsorship_type?: string | null;
   student_name: string | null;
   status: string;
 };
@@ -33,7 +35,10 @@ export function PaymentForm({
   const err = (name: string) => state.fieldErrors?.[name];
 
   const today = new Date().toISOString().slice(0, 10);
-  const suggestedAmount = selected ? Number(selected.monthly_amount ?? 0) / 100 : '';
+  const suggestedMinor = selected
+    ? Number(selected.plan_amount ?? selected.monthly_amount ?? 0)
+    : 0;
+  const suggestedAmount = selected ? suggestedMinor / 100 : '';
 
   if (sponsorships.length === 0) {
     return (
@@ -58,6 +63,7 @@ export function PaymentForm({
           {sponsorships.map((s) => (
             <option key={s.id} value={s.id}>
               {s.student_name ?? 'Student'} — {s.status}
+              {s.sponsorship_type ? ` (${s.sponsorship_type})` : ''}
             </option>
           ))}
         </Select>
@@ -66,6 +72,7 @@ export function PaymentForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Amount (PKR)" hint="Enter in rupees — we store paise internally.">
           <TextInput
+            key={sponsorshipId}
             type="number"
             step="0.01"
             min="1"

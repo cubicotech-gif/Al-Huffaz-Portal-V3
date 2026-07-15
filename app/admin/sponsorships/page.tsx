@@ -29,7 +29,7 @@ export default async function SponsorshipsQueuePage({
   const { data } = await supabase
     .from('sponsorships')
     .select(
-      'id, status, monthly_amount, requested_at, approved_at, rejected_at, notes, rejection_reason, sponsor:sponsors(display_name, email), student:students(full_name, grade_level)',
+      'id, status, monthly_amount, plan_amount, sponsorship_type, requested_at, approved_at, rejected_at, notes, rejection_reason, sponsor:sponsors(display_name, email), student:students(full_name, grade_level)',
     )
     .eq('status', activeStatus)
     .order('requested_at', { ascending: false });
@@ -95,7 +95,9 @@ export default async function SponsorshipsQueuePage({
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
                     Requested {new Date(r.requested_at).toLocaleDateString()} ·{' '}
-                    {formatMinorUnits(r.monthly_amount)}/month
+                    {formatMinorUnits((r as any).plan_amount ?? r.monthly_amount)}
+                    {'/'}
+                    {((r as any).sponsorship_type as string) ?? 'monthly'}
                   </p>
                   {r.rejection_reason ? (
                     <p className="mt-2 rounded border border-rose-100 bg-rose-50 px-2 py-1 text-xs text-rose-700">

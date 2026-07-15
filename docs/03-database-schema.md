@@ -77,6 +77,14 @@ create table schools (
   currency text not null default 'PKR',
   currency_symbol text not null default 'Rs.',
   academic_year text,
+  -- Bank / transfer details shown to sponsors on the payment page (0011)
+  bank_name text,
+  account_title text,
+  account_number text,
+  iban text,
+  swift_code text,
+  payment_instructions text,
+  email_notifications_enabled boolean not null default true,  -- (0011)
   settings jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
@@ -243,8 +251,9 @@ create table sponsorships (
   student_id uuid not null references students(id) on delete restrict,
 
   status sponsorship_status not null default 'requested',
-  monthly_amount bigint not null,           -- minor units
-  sponsorship_type text not null default 'monthly',  -- monthly, one_time, annual
+  monthly_amount bigint not null,           -- minor units; recurring monthly figure
+  plan_amount bigint,                        -- minor units; amount payable per chosen cycle (0012)
+  sponsorship_type text not null default 'monthly',  -- monthly | quarterly | yearly
 
   requested_at timestamptz not null default now(),
   approved_at timestamptz,

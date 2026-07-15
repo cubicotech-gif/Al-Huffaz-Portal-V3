@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { formatMinorUnits } from '@/lib/money';
+import { allPlanAmounts } from '@/lib/sponsorships/pricing';
 import { PublicHeader } from '@/components/public-header';
 import { SponsorButton } from './sponsor-button';
 
@@ -17,11 +18,21 @@ export default async function PublicStudentDetail({
 
   const { data: student } = await supabase
     .from('public_available_students')
-    .select('id, full_name, grade_level, islamic_category, gender, monthly_fee')
+    .select(
+      'id, full_name, grade_level, islamic_category, gender, monthly_fee, course_fee, uniform_fee, annual_fee, admission_fee',
+    )
     .eq('id', id)
     .maybeSingle();
 
   if (!student) notFound();
+
+  const planAmounts = allPlanAmounts({
+    monthly_fee: Number(student.monthly_fee ?? 0),
+    course_fee: Number(student.course_fee ?? 0),
+    uniform_fee: Number(student.uniform_fee ?? 0),
+    annual_fee: Number(student.annual_fee ?? 0),
+    admission_fee: Number(student.admission_fee ?? 0),
+  });
 
   const {
     data: { user },
@@ -147,6 +158,7 @@ export default async function PublicStudentDetail({
                   studentId={student.id}
                   disabled={sponsorDisabled}
                   disabledReason={disabledReason}
+                  planAmounts={planAmounts}
                 />
               )}
             </div>

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/lib/activity';
+import { computePlanAmount, isSponsorshipType } from '@/lib/sponsorships/pricing';
 
 export type RequestSponsorshipState = { error?: string; requestedAt?: number };
 
@@ -27,8 +28,11 @@ async function notify(
 export async function requestSponsorshipAction(
   studentId: string,
   _prev: RequestSponsorshipState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<RequestSponsorshipState> {
+  const rawType = formData.get('sponsorship_type');
+  const sponsorshipType = isSponsorshipType(rawType) ? rawType : 'monthly';
+
   const supabase = await createClient();
 
   const {
@@ -61,12 +65,21 @@ export async function requestSponsorshipAction(
 
   const { data: student } = await supabase
     .from('public_available_students')
-    .select('id, monthly_fee')
+    .select('id, monthly_fee, course_fee, uniform_fee, annual_fee, admission_fee')
     .eq('id', studentId)
     .single();
   if (!student) {
     return { error: 'This student is no longer available for sponsorship.' };
   }
+
+  const fees = {
+    monthly_fee: Number(student.monthly_fee ?? 0),
+    course_fee: Number(student.course_fee ?? 0),
+    uniform_fee: Number(student.uniform_fee ?? 0),
+    annual_fee: Number(student.annual_fee ?? 0),
+    admission_fee: Number(student.admission_fee ?? 0),
+  };
+  const planAmount = computePlanAmount(sponsorshipType, fees);
 
   const { data: existing } = await supabase
     .from('sponsorships')
@@ -82,7 +95,9 @@ export async function requestSponsorshipAction(
   const { error } = await supabase.from('sponsorships').insert({
     sponsor_id: sponsor.id,
     student_id: studentId,
-    monthly_amount: student.monthly_fee ?? 0,
+    monthly_amount: fees.monthly_fee,
+    plan_amount: planAmount,
+    sponsorship_type: sponsorshipType,
     status: 'requested',
   });
   if (error) return { error: error.message };
@@ -91,7 +106,12 @@ export async function requestSponsorshipAction(
     action: 'sponsorship.requested',
     objectType: 'sponsorship',
     objectId: studentId,
-    details: { student_id: studentId, sponsor_id: sponsor.id },
+    details: {
+      student_id: studentId,
+      sponsor_id: sponsor.id,
+      sponsorship_type: sponsorshipType,
+      plan_amount: planAmount,
+    },
   });
 
   revalidatePath(`/students/${studentId}`);

@@ -1,10 +1,16 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import {
   requestSponsorshipAction,
   type RequestSponsorshipState,
 } from '@/lib/sponsorships/actions';
+import { formatMinorUnits } from '@/lib/money';
+import {
+  SPONSORSHIP_TYPES,
+  SPONSORSHIP_TYPE_LABELS,
+  type SponsorshipType,
+} from '@/lib/sponsorships/pricing';
 
 const INITIAL: RequestSponsorshipState = {};
 
@@ -12,13 +18,16 @@ export function SponsorButton({
   studentId,
   disabled,
   disabledReason,
+  planAmounts,
 }: {
   studentId: string;
   disabled?: boolean;
   disabledReason?: string;
+  planAmounts: Record<SponsorshipType, number>;
 }) {
   const action = requestSponsorshipAction.bind(null, studentId);
   const [state, dispatch, pending] = useActionState(action, INITIAL);
+  const [plan, setPlan] = useState<SponsorshipType>('monthly');
 
   if (disabled) {
     return (
@@ -40,13 +49,46 @@ export function SponsorButton({
           Request submitted. An administrator will review it shortly.
         </div>
       ) : (
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
-        >
-          {pending ? 'Submitting…' : 'Sponsor this student'}
-        </button>
+        <>
+          <input type="hidden" name="sponsorship_type" value={plan} />
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Choose a plan
+            </legend>
+            {SPONSORSHIP_TYPES.map((t) => (
+              <label
+                key={t}
+                className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${
+                  plan === t
+                    ? 'border-brand-400 bg-brand-50'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="plan_choice"
+                    value={t}
+                    checked={plan === t}
+                    onChange={() => setPlan(t)}
+                    className="h-4 w-4 text-brand-600 focus:ring-brand-400"
+                  />
+                  <span className="font-medium text-slate-800">{SPONSORSHIP_TYPE_LABELS[t]}</span>
+                </span>
+                <span className="font-semibold text-slate-900">
+                  {formatMinorUnits(planAmounts[t])}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
+          >
+            {pending ? 'Submitting…' : 'Sponsor this student'}
+          </button>
+        </>
       )}
     </form>
   );

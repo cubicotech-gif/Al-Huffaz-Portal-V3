@@ -37,12 +37,21 @@ export default async function SponsorPayPage({
 
   const sponsorships = sponsor ? await listPayableSponsorships(sponsor.id) : [];
   const mapped = sponsorships.map((s) => {
-    const student = (s as unknown as { student: { full_name: string } | null }).student;
+    const row = s as unknown as {
+      id: string;
+      monthly_amount: number;
+      plan_amount: number | null;
+      sponsorship_type: string | null;
+      status: string;
+      student: { full_name: string } | null;
+    };
     return {
-      id: s.id as string,
-      monthly_amount: s.monthly_amount as number,
-      status: s.status as string,
-      student_name: student?.full_name ?? null,
+      id: row.id,
+      monthly_amount: row.monthly_amount,
+      plan_amount: row.plan_amount,
+      sponsorship_type: row.sponsorship_type,
+      status: row.status,
+      student_name: row.student?.full_name ?? null,
     };
   });
 

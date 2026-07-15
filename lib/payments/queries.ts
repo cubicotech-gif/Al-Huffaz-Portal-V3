@@ -50,7 +50,9 @@ export async function listPayableSponsorships(sponsorId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('sponsorships')
-    .select('id, status, monthly_amount, student:students(id, full_name, grade_level)')
+    .select(
+      'id, status, monthly_amount, plan_amount, sponsorship_type, student:students(id, full_name, grade_level)',
+    )
     .eq('sponsor_id', sponsorId)
     .in('status', ['approved', 'active', 'paused'])
     .order('requested_at', { ascending: false });

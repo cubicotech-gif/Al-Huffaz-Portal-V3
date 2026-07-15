@@ -182,16 +182,36 @@ Complete list with source file references in
 
 ## 9. Current state of this repo
 
-- ✅ Config files (package.json, tsconfig, Tailwind, Next.js, Cloudflare)
-- ✅ Hello page at `/` + health endpoint at `/api/health`
-- ✅ Supabase client/server stubs in `lib/supabase/`
-- ✅ Full spec docs under `docs/`
-- ❌ No database migrations yet
-- ❌ No auth pages yet
-- ❌ No features built yet
+The core portal is **built and working** — this section was out of date and
+now reflects reality.
 
-First deploy target: **hello page visible at the Cloudflare Pages URL.**
-Nothing more.
+**Done**
+- ✅ Config, hello page `/`, health endpoint `/api/health`
+- ✅ Supabase client/server/middleware + role-based routing (`middleware.ts`,
+  `lib/auth.ts`)
+- ✅ DB migrations `0001`–`0011` under `supabase/migrations/` (schema, RLS on
+  every table, triggers, public view, storage buckets, settings)
+- ✅ Auth: login, sponsor registration, pending-approval gate
+- ✅ Sponsor loop: browse students → request → admin approve → submit payment
+  proof → admin verify → trigger activates sponsorship + hides student
+- ✅ Sponsor: dashboard, my students, **child progress / report card**
+  (`/sponsor/students/[id]`), payment history, notifications
+- ✅ Admin: dashboard, students CRUD (+ academics/attendance/behaviour/fees),
+  CSV import, CSV exports, sponsorship queue, payments queue, sponsor
+  approvals + lifecycle (pause/reactivate/delete/re-engage), staff mgmt,
+  settings (school + **bank/transfer details**), activity log, notifications
+- ✅ Email via Resend (payment verified/rejected, re-engagement)
+
+**In progress — v2 parity gaps** (see the gap-closing plan / audit)
+- ⏳ Module 1: report card is a rich JSON model with computed grades; a
+  fully relational remodel is deferred
+- ⏳ Module 2: sponsorship **type** (monthly/quarterly/yearly) + amount formula
+- ⏳ Module 5: sponsor **edit** / reset password / two-stage History+Restore
+- ⏳ Module 6: Reports & analytics page
+- ⏳ Module 8: bulk-import full field set + duplicate-GR / upsert + template
+- ⏳ Module 9: admin offline/manual payment entry
+- ⏳ Module 10: full notification + email event parity
+- 🔮 Module 11: recurring / due-date reminders / PDF receipts (Phase 2)
 
 ---
 

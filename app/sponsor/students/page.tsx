@@ -29,7 +29,7 @@ export default async function SponsorStudentsPage() {
     ? await supabase
         .from('sponsorships')
         .select(
-          'id, status, monthly_amount, requested_at, student:students(id, full_name, grade_level, islamic_category)',
+          'id, status, monthly_amount, plan_amount, sponsorship_type, requested_at, student:students(id, full_name, grade_level, islamic_category)',
         )
         .eq('sponsor_id', sponsor.id)
         .order('requested_at', { ascending: false })
@@ -82,7 +82,9 @@ export default async function SponsorStudentsPage() {
                     {student?.islamic_category && student.islamic_category !== 'none'
                       ? student.islamic_category
                       : 'Academic'}{' '}
-                    · {formatMinorUnits(r.monthly_amount)}/month
+                    · {formatMinorUnits((r as any).plan_amount ?? r.monthly_amount)}
+                    {'/'}
+                    {((r as any).sponsorship_type as string) ?? 'monthly'}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
